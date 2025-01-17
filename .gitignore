@@ -1,0 +1,11 @@
+# Xcode files to ignore
+.DS_Store
+*.swp
+*.xcuserstate
+*.xcworkspace/
+DerivedData/
+build/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/xcshareddata/xcschemes/xcdebugger/
+*.plist

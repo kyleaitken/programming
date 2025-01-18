@@ -23,8 +23,6 @@ struct ProgrammingApp: App {
         }
     }()
     
-    let relBuilder = RelationBuilder()
-
     var body: some Scene {
         WindowGroup {
             ContentView()

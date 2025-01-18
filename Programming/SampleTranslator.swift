@@ -44,16 +44,23 @@ public final class SampleTranslator: Translator {
       "+": compilePlus,
       "*": compileMultiply,
       "<-": compileAssign,
+      "-": compileSubtract,
+      "/": compileDivide,
       "Identifier": compileIdentifier,
       "Integer": compileInteger,
       "send": compileFunctionCall,
+      "where": compileWhere
     ]
     evaluationOperatorMap = [
       "+": evaluatePlus,
       "*": evaluateMultiply,
       "<-": evaluateAssign,
+      "=": evaluateAssign,
+      "-": evaluateSubtract,
+      "/": evaluateDivide,
       "Identifier": evaluateIdentifier,
       "Integer": evaluateInteger,
+      "where": evaluateWhere
       // "send": "evaluateFunctionCall",
     ]
   }
@@ -74,12 +81,18 @@ public final class SampleTranslator: Translator {
     }
   }
 
-
   func compilePlus(_ tree: VirtualTree) -> Void {
     let t = tree as! Tree
     compileExpressionFor(t.children[0])
     compileExpressionFor(t.children[1])
     generate(instruction: "PLUS")
+  }
+    
+  func compileSubtract(_ tree: VirtualTree) -> Void {
+      let t = tree as! Tree
+      compileExpressionFor(t.children[0])
+      compileExpressionFor(t.children[1])
+      generate(instruction: "SUBTRACT")
   }
 
   func compileMultiply(_ tree: VirtualTree) -> Void{
@@ -88,6 +101,13 @@ public final class SampleTranslator: Translator {
     compileExpressionFor(t.children[1])
     generate(instruction: "MULTIPLY")
   }
+    
+  func compileDivide(_ tree: VirtualTree) -> Void{
+      let t = tree as! Tree
+      compileExpressionFor(t.children[0])
+      compileExpressionFor(t.children[1])
+      generate(instruction: "DIVIDE")
+  }
 
   func compileAssign(_ tree: VirtualTree) -> Void {
     let t = tree as! Tree
@@ -95,6 +115,13 @@ public final class SampleTranslator: Translator {
       compileExpressionFor(t.children[index])
       generate(instruction: "POP")
     }
+  }
+    
+  func compileWhere(_ tree: VirtualTree) -> Void {
+        let t = tree as! Tree
+        for index in t.children.indices {
+            compileExpressionFor(t.children[index])
+        }
   }
 
   func compileIdentifier(_ token: VirtualTree) -> Void {
@@ -141,7 +168,7 @@ public final class SampleTranslator: Translator {
       if expressionsIfEvaluator!.count == 0 {
         return "\(result)" 
       } else {
-        return expressionsIfEvaluator
+          return "Result: \(result), Dictionary: \((expressionsIfEvaluator?.description) ?? "No values in dictionary")"
       }
   }
 
@@ -155,12 +182,26 @@ public final class SampleTranslator: Translator {
     let exp2 = evaluateExpressionFor(t.children[1])
     return exp1 + exp2
   }
+    
+  func evaluateSubtract(_ tree: VirtualTree) -> Int {
+      let t = tree as! Tree
+      let exp1 = evaluateExpressionFor(t.children[0])
+      let exp2 = evaluateExpressionFor(t.children[1])
+      return exp1 - exp2
+  }
 
   func evaluateMultiply(_ tree: VirtualTree) -> Int {
     let t = tree as! Tree
     let exp1 = evaluateExpressionFor(t.children[0])
     let exp2 = evaluateExpressionFor(t.children[1])
     return exp1 * exp2
+  }
+    
+  func evaluateDivide(_ tree: VirtualTree) -> Int {
+      let t = tree as! Tree
+      let exp1 = evaluateExpressionFor(t.children[0])
+      let exp2 = evaluateExpressionFor(t.children[1])
+      return exp1 / exp2
   }
 
   func evaluateIdentifier(_ token: VirtualTree) -> Int {
@@ -178,14 +219,26 @@ public final class SampleTranslator: Translator {
   }
 
   func evaluateAssign(_ tree: VirtualTree) -> Int {
-    //TODO
+      let t = tree as! Tree
+      
+      for i in stride(from: 0, to: t.children.count-1, by: 2) {
+          let varToken = t.children[i] as? Token
+          let variable = varToken!.symbol
+          let expressionValue = evaluateExpressionFor(t.children[i+1])
+          expressionsIfEvaluator![variable] = expressionValue
+      }
+      
       return 0
   }
 
 
-  func evaluateWhere(_ tree: VirtualTree) -> Int { 
-    //TODO
-      return 0
+  func evaluateWhere(_ tree: VirtualTree) -> Int {
+      let t = tree as! Tree
+      evaluateExpressionFor(t.children[1])
+      
+      let result = evaluateExpressionFor(t.children[0])  // This should evaluate a * b
+      return result
+
   }
     
 

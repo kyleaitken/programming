@@ -14,7 +14,7 @@ struct ContentView: View {
                 .imageScale(.large)
                 .foregroundColor(.accentColor)
             let compile = false
-            let text = "1+2*3"
+            let text = "a*b where a = 2-1; b = 10+20;"
             let translator = SampleTranslator ()
             let string = "\(compile ? "Compile: " : "Evaluate: ")  \"\(text)\""
             Text(string)

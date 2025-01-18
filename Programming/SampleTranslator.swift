@@ -190,20 +190,25 @@ public final class SampleTranslator: Translator {
     
 
 var scannerTables: Array<Any> = [
-    ["ScannerReadaheadTable", 1, ([256], "L", 5), (")", "RK", 7), ("*", "RK", 8), ("+", "RK", 9), (",", "RK", 10), ("0123456789", "RK", 2), ("(", "RK", 6), (";", "RK", 12), ("=", "RK", 13), ("ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", "RK", 3), ([9, 10, 12, 13], "R", 4), (" ", "R", 4)],
-    ["ScannerReadaheadTable", 2, ([9, 10, 12, 13, 256], "L", 11), ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_+*=[]{}()^;#:.$ ", "L", 11), ("0123456789", "RK", 2)],
-    ["ScannerReadaheadTable", 3, ([9, 10, 12, 13, 256], "L", 14), ("+*=[]{}()^;#:.$ ", "L", 14), ("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", "RK", 3)],
-    ["ScannerReadaheadTable", 4, ([256], "L", 1), ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789+*=[]{}()^;#:.$", "L", 1), ([9, 10, 12, 13], "R", 4), (" ", "R", 4)],
-    ["SemanticTable", 5, "buildToken", ["-|"], 1],
-    ["SemanticTable", 6, "buildToken", ["("], 1],
-    ["SemanticTable", 7, "buildToken", [")"], 1],
-    ["SemanticTable", 8, "buildToken", ["*"], 1],
-    ["SemanticTable", 9, "buildToken", ["+"], 1],
-    ["SemanticTable", 10, "buildToken", [","], 1],
-    ["SemanticTable", 11, "buildToken", ["Integer"], 1],
-    ["SemanticTable", 12, "buildToken", [";"], 1],
-    ["SemanticTable", 13, "buildToken", ["="], 1],
-    ["SemanticTable", 14, "buildToken", ["Identifier"], 1]]
+       ["ScannerReadaheadTable", 1, ([256], "L", 7), ("ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", "RK", 4), (")", "RK", 9), ("*", "RK", 10), ("+", "RK", 11), (",", "RK", 12), ("-", "RK", 13), ("(", "RK", 8), ("/", "RK", 2), ("0123456789", "RK", 3), ([9,10,12,13,32], "R", 5), (";", "RK", 16), ("=", "RK", 17)],
+       ["ScannerReadaheadTable", 2, ([9,10,12,13,32,256], "L", 14), ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789+-*=[]{}()^;#:.$'\"", "L", 14), ("/", "R", 6)],
+       ["ScannerReadaheadTable", 3, ([9,10,12,13,32,256], "L", 15), ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_+-*/=[]{}()^;#:.$'\"", "L", 15), ("0123456789", "RK", 3)],
+       ["ScannerReadaheadTable", 4, ([9,10,12,13,32,256], "L", 18), ("+-*/=[]{}()^;#:.$'\"", "L", 18), ("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", "RK", 4)],
+       ["ScannerReadaheadTable", 5, ([256], "L", 1), ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789+-*/=[]{}()^;#:.$'\"", "L", 1), ([9,10,12,13,32], "R", 5)],
+       ["ScannerReadaheadTable", 6, ([9,12,13,32,256], "R", 6), ("=ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}\"#$'()*+-./0123456789:;", "R", 6), ([10], "R", 1)],
+       ["SemanticTable", 7, "buildToken", ["-|"], 1],
+       ["SemanticTable", 8, "buildToken", ["("], 1],
+       ["SemanticTable", 9, "buildToken", [")"], 1],
+       ["SemanticTable", 10, "buildToken", ["*"], 1],
+       ["SemanticTable", 11, "buildToken", ["+"], 1],
+       ["SemanticTable", 12, "buildToken", [","], 1],
+       ["SemanticTable", 13, "buildToken", ["-"], 1],
+       ["SemanticTable", 14, "buildToken", ["/"], 1],
+       ["SemanticTable", 15, "buildToken", ["Integer"], 1],
+       ["SemanticTable", 16, "buildToken", [";"], 1],
+       ["SemanticTable", 17, "buildToken", ["="], 1],
+       ["SemanticTable", 18, "buildToken", ["Identifier"], 1]]
+
 
 var parserTables: Array<Any> = [
        ["keywords", "where"],

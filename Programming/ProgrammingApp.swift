@@ -22,6 +22,8 @@ struct ProgrammingApp: App {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+    
+    let relBuilder = RelationBuilder()
 
     var body: some Scene {
         WindowGroup {
@@ -29,4 +31,5 @@ struct ProgrammingApp: App {
         }
         .modelContainer(sharedModelContainer)
     }
+    
 }

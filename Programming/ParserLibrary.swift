@@ -695,7 +695,7 @@ public final class Parser: Transducer {
         case "buildTreeFromIndex":
             //Index is (+1,+2,+3... => label is in the token relative to the leftend; i.e., to the right of left end.
             //Index is (-1,-2,-3... => label is in the token relative to the rightend; i.e., to the left of right end.
-            let children = treeStack [left...right].filter { $0 != nil }
+            let _children = treeStack [left...right].filter { $0 != nil }
             let index = parameters [0] as! Int
             buildTreeFromIndex (index: index)
             

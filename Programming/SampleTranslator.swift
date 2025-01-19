@@ -167,8 +167,14 @@ public final class SampleTranslator: Translator {
       let result = evaluateExpressionFor(tree!) // see result and variable dictionary
       if expressionsIfEvaluator!.count == 0 {
         return "\(result)" 
+      } else if tree?.label == "where" {
+          // Return the result for where expression
+          print(tree)
+          print(tree?.label)
+          return "\(result)"
       } else {
-          return "Result: \(result), Dictionary: \((expressionsIfEvaluator?.description) ?? "No values in dictionary")"
+          // Print the dictionary for assignments
+          return "\(expressionsIfEvaluator!.description)"
       }
   }
 

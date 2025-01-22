@@ -1,0 +1,51 @@
+
+parser
+   //Before you go too far, you will provide a routine in the grammar object which
+   //can provide the default attributes given whether you are processing
+   //a parser grammar or a scanner grammar.
+   //For a parser grammar, terminals will have defaults [read, stack, noNode, noKeep] and nonterminals [read, stack, node, noKeep].
+   //For now, hack the grammar so it will assume a nonterminal is anything that starts as an uppercase.
+   //Have it print attributes as "L" if its look (with none of the other attributes showing up); otherwise
+   //use R if its read, S if its stack (or nothing), N if its node (or nothing), K if its keep or nothing.
+
+   fsm1 = a; //The attribute should be print at "RS". 
+   fsm2 = a [read read read read]; //The attribute should still be "RS". Superfluous attributes don't matter.
+   fsm3 = a [read stack node keep]; //The attribute should be "RSNK". The keep attributes is superfluous for a parser.
+   fsm4 = a [read stack node noKeep]; //The attribute should be "RSN". 
+   fsm5 = a [read stack node look]; //The attribute should be "L".
+   fsm6 = a [noStack keep]; //The attribute should be "RK".
+   fsm7 = a [node]; //The attribute should be "RSN".
+   fsm8 = A; //Because of the hack above, the attribute should be "RSN"
+
+   //The next 3 fsms refer to FSMs on the right... Do not build transitions called fsm1 or fsm9.
+   fsm9 = fsm1 [noStack keep]; 
+        //This will need the implementation of a copy operation that can duplicate the FSM.
+	//This means you can recognize that fsm1 is actually an FSM name (walkList: knows, look it up).
+        //The attribute for the duplicate will be "RK" for fsm9 but the attribute for fsm1 should still be "RS". 
+	//You need to ensure fsm1 is unmodified by the construction of fsm9.
+	//One way of checking is to print fsm1 just before you return fsm9.
+   fsm10 = fsm9 [noNode]; //The attribute for fsm10 should be "RS" but fsm9 should still be "RK".
+   fsm11 = {fsm9}; //Braces mean LOOK. The attribute should be "L" for fsm11; fsm9 should still be "RK".
+
+
+   //The following FSMs should all be ROOT BUILDING semantic actions; i.e. TREE BUILDING
+   //because of the existance of "=>" in front of it... A semantic action is a type of LABEL.
+   //Also, note that ACTION parameters should be characters, integers, or strings depending
+   //on whether their labels are #walkCharacter: #walkInteger:, or #walkString:.
+
+   fsm12 = => "list";   //This one should create semantic transition #buildTree: with parameters containing STRING "list" (NOT A TOKEN).
+   fsm13 = => + 1;   //This one should create semantic transition #buildTreeFromIndex: with parameters containing integer 1.
+   fsm14 = => 1;   //This one should create semantic transition #buildTreeFromIndex: with parameters containing integer 1 TOO.
+   fsm15 = => -1;   //This one should create semantic transition #buildTreeFromIndex: with parameters containing integer -1.
+                    //Note that the tree does not contain -1 in it. So you have to explicitly negate it.
+   fsm16 = => #buildRoutine:with: [1 2];  //This one should create semantic transition #buildRoutine:with: with parameters containing integers 1 and 2.
+   fsm17 = => #between:and: [10 20];  //This one should create semantic transition #between:and: with parameters containing integers 10 and 20.
+   fsm18 = => #testing;  //This one should create semantic transition #testing with parameters consisting of an empty collection.
+   fsm19 = => #myBuildTree ["list"];  //This one should look just like fsm12 except the name of the semantic action is 
+                                      //myBuildTree instead of buildTree:.
+
+   //The following FSMs should all be NON-ROOT BUILDING semantic actions because "=>" is missing
+   fsm20 = #normal1:and: [10 20];  //Like the above but NOT tree building...
+   fsm21 = #normal2;  //Like the above but NOT tree building...
+   fsm22 = #normal3: ["list"];  //Like the above but NOT tree building...
+	

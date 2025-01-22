@@ -1,0 +1,42 @@
+scanner
+    //NOTE: basic transitions are either JUST integers or a MIXTURE of character or integers.
+    //With the first approach everything (including 256 for endOfFileCharacter) is internally
+    //an integer but WHEN YOU PRINT IT, you print anything printable as a character and anything
+    //unprintable as an integer (e.g., tab is unprintable).
+	//The following Smalltalk code (easily convertible to Swift) can be placed in class Grammar
+
+    //Consider
+    //isPrintableAsCharacter: integer
+    //  | printable |
+    //  (integer < 0 | integer >= 255) ifTrue: [^false].
+    //  The following string ends with an underscore, a double quote, and a single quote.
+    //	printable := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\*~=@%&?|<>_"'''.
+    //  ^printable indexOf: integer asCharacter > 0
+
+
+    //Examples building an FSM with attributes (ask the grammar for the default attributes; see details
+    //in parserFSMd.txt; scanner defaults should be read, noStack, noNode, keep)
+    fsm1 = $+; //Should default to "RK"
+    fsm2 = $a [noKeep]; //Should have attribute "R"
+    fsm3 = {$a}; //Braces means LOOK. Should have attribute "L"
+    fsm4 = 256; //EndOfFileCharacter: Cannot be converted to a character.
+    fsm5 = 32 [noKeep]; //Space character: The attribute should be "R". 
+    fsm6 = 10 [noKeep]; //LineEnd character: This is not a printable character
+
+    //The following are ROOT building semantic actions because
+    //they are preceded by "=>". That information is stored in a LABEL object .
+    //Also, note that parameters should be characters, integers, strings, or symbols depending
+    //on whether their labels are #walkCharacter: #walkInteger:, #walkString:, or walkSymbol.
+    //Swift doesn't have symbols so strings in their place.
+
+    fsm7 = => Number; //This should create semantic transition #buildToken: with parameters "Number", a string, NOT a token).
+    fsm8 = => "bird";   //This one should create semantic transition #buildToken: with parameters containing "bird" (NOT A TOKEN).
+    fsm9 = => #buildBirdRoutine:with: [1 2];  //This one should create semantic transition #buildBirdRoutine:with: with parameters containing integers 1 and 2.
+    fsm10 = => #between:and: [10 20];  //This one should create semantic transition #between:and: with parameters containing integers 10 and 20.
+    fsm11 = => #testing;  //This one should create semantic transition #testing with parameters consisting of an empty collection.
+
+    //The following are NON-ROOT building semantic actions, because they are NOT preceded by "=>".
+    fsm12 = #normalIncludes:and: [30 40];  //This one should create semantic transition #normalIncludes:and: with integer parameters 30 and 40.
+    fsm13 = #normalIncludes: [50];  //This one should create semantic transition #normalIncludes: with parameters consisting of integer 50.
+    fsm14 = #normalAction;  //This one should create semantic transition #normalAction with parameters consisting of an empty collection.
+		

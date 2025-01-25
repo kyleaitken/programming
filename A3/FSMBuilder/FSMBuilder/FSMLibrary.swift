@@ -93,10 +93,12 @@ public class FiniteStateMachine {
             stateMap[state.stateNumber] = newFSMState
         }
         
+        // copy transitions and add to new states
         for state in fsm.states {
             let newState = stateMap[state.stateNumber]!
             for transition in state.transitions {
                 let newTransition = transition.copy()
+                
                 // Update the 'goto' state to refer to the new state
                 if let gotoState = transition.goto {
                     newTransition.goto = stateMap[gotoState.stateNumber]

@@ -168,46 +168,36 @@ public final class FSMBuilder : Translator {
     }
     
     func walkCharacter (_ tree : VirtualTree) -> Any {
-        //Build an FSM for this tree and return it...
         let token = tree as! Token
-        let symbol = token.symbol
-        return FiniteStateMachine.forCharacter(symbol)
+        return FiniteStateMachine.forCharacter(token.symbol)
     }
     
     func walkString (_ tree : VirtualTree) -> Any {
-        //Build an FSM for this tree and return it...
         let token = tree as! Token
-        let symbol = token.symbol
-        return FiniteStateMachine.forCharacter(symbol)
+        return FiniteStateMachine.forCharacter(token.symbol)
     }
     
     func walkSymbol (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
         let token = tree as! Token
-        let symbol = token.symbol
-        return FiniteStateMachine.forSymbol(symbol)
+        return FiniteStateMachine.forSymbol(token.symbol)
     }
     
     func walkInteger (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
         let token = tree as! Token
-        let symbol = token.symbol
-        return FiniteStateMachine.forInteger(symbol)
+        return FiniteStateMachine.forInteger(token.symbol)
     }
     
     func walkIdentifier (_ tree: VirtualTree) -> Any {
         // Ensure tree is a valid Tree instance
-        let fsmNameToken = tree as! Token
-        let fsmName = fsmNameToken.symbol
+        let fsmToken = tree as! Token
         
         // Retrieve the FSM to copy
-        guard let fsm = fsmMap[fsmName] as? FiniteStateMachine else {
-            print("Error: FSM named \(fsmName) not found.")
+        guard let fsm = fsmMap[fsmToken.symbol] as? FiniteStateMachine else {
+            print("Error: FSM named \(fsmToken.symbol) not found.")
             return 0
         }
         
-        let fsmCopy = FiniteStateMachine.forIdentifier(fsm)
-        return fsmCopy
+        return FiniteStateMachine.forIdentifier(fsm)
     }
     
     func walkAttributes (_ tree : VirtualTree) -> Any {

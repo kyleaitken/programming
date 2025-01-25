@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		067AC8092D406D7B00B55F65 /* parserFSMs.txt in Resources */ = {isa = PBXBuildFile; fileRef = 067AC8072D406D7B00B55F65 /* parserFSMs.txt */; };
-		067AC80A2D406D7B00B55F65 /* scannerFSMs.txt in Resources */ = {isa = PBXBuildFile; fileRef = 067AC8082D406D7B00B55F65 /* scannerFSMs.txt */; };
+		067AC80C2D446AF200B55F65 /* scannerFSMs.txt in Resources */ = {isa = PBXBuildFile; fileRef = 067AC80B2D446AF200B55F65 /* scannerFSMs.txt */; };
 		C6BD02F729805787008A1E06 /* FSMBuilderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BD02F629805787008A1E06 /* FSMBuilderApp.swift */; };
 		C6BD02F929805787008A1E06 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BD02F829805787008A1E06 /* ContentView.swift */; };
 		C6BD02FB29805789008A1E06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6BD02FA29805789008A1E06 /* Assets.xcassets */; };
@@ -21,7 +21,7 @@
 
 /* Begin PBXFileReference section */
 		067AC8072D406D7B00B55F65 /* parserFSMs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = parserFSMs.txt; sourceTree = "<group>"; };
-		067AC8082D406D7B00B55F65 /* scannerFSMs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = scannerFSMs.txt; sourceTree = "<group>"; };
+		067AC80B2D446AF200B55F65 /* scannerFSMs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = scannerFSMs.txt; sourceTree = "<group>"; };
 		C6BD02F329805787008A1E06 /* FSMBuilder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FSMBuilder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6BD02F629805787008A1E06 /* FSMBuilderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FSMBuilderApp.swift; sourceTree = "<group>"; };
 		C6BD02F829805787008A1E06 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -48,8 +48,8 @@
 		067AC8062D406D5600B55F65 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				067AC80B2D446AF200B55F65 /* scannerFSMs.txt */,
 				067AC8072D406D7B00B55F65 /* parserFSMs.txt */,
-				067AC8082D406D7B00B55F65 /* scannerFSMs.txt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -153,10 +153,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				067AC80C2D446AF200B55F65 /* scannerFSMs.txt in Resources */,
 				C6BD02FF29805789008A1E06 /* Preview Assets.xcassets in Resources */,
 				C6BD02FB29805789008A1E06 /* Assets.xcassets in Resources */,
 				067AC8092D406D7B00B55F65 /* parserFSMs.txt in Resources */,
-				067AC80A2D406D7B00B55F65 /* scannerFSMs.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

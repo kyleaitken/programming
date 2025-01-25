@@ -21,42 +21,36 @@ public final class FSMBuilder : Translator {
     
     func process (_ text: String) -> Void {
         if let tree = parser!.parse(text) as? Tree {
-            print("Tree from parser: ", tree)
-            print("num children: ", tree.children.count)
+//            print("Tree from parser: ", tree)
             walkTree(tree)
         } else {
             print("Failed to parse the text into a Tree")
         }
-//        tree = parser!.parse(text)!
-//        print("Tree from parser: ", tree)
-//        walkTree (tree!)
     }
     
     func walkTree (_ tree: VirtualTree) -> Any {
-        print("In walktree")
-
         let action = tree.label as String
         switch (action) {
         case "walkList":
-            print("doing walklist")
             return walkList (tree)
         case "walkCharacter":
-            print("doing walkchar")
             return walkCharacter (tree)
         case "walkString":
-            print("doing walkstr")
             return walkString (tree)
+        case "walkIdentifier":
+            return walkIdentifier(tree)
         case "walkSymbol":
-            print("doing walksym")
             return walkSymbol (tree)
         case "walkInteger":
-            print("doing walkint")
             return walkInteger (tree)
         case "walkAttributes":
-            print("doing walkattr")
             return walkAttributes (tree)
-        case "walkBuildTreeOrTokenFromName":
-            return walkBuildTreeOrTokenFromName (tree)
+        case "walkbuildTreeOrTokenFromName":
+            return walkbuildTreeOrTokenFromName (tree)
+        case "walkbuildTreeFromRightIndex":
+            return walkbuildTreeFromRightIndex (tree)
+        case "walkbuildTreeFromLeftIndex":
+            return walkbuildTreeFromLeftIndex (tree)
         case "walkTreeBuildingSemanticAction":
             return walkTreeBuildingSemanticAction (tree)
         case "walkNonTreeBuildingSemanticAction":
@@ -83,16 +77,16 @@ public final class FSMBuilder : Translator {
     static public func example1 () -> String {//Returns a string to please ContentView
         let grammar = Grammar  ()
         Grammar.activeGrammar = grammar
+        // change the type to "parser" to use the parserFSMs file
+        grammar.type = "parser"
         
-        let fileName = "parserFSMs"  // File name without extension
-        let fileType = "txt"         // File extension
+        let fileName = grammar.type == "scanner" ? "scannerFSMs" : "parserFSMs"
         var fileContent = ""
 
-        if let filePath = Bundle.main.path(forResource: fileName, ofType: fileType) {
+        if let filePath = Bundle.main.path(forResource: fileName, ofType: "txt") {
             let fileURL = URL(fileURLWithPath: filePath)
             do {
                 fileContent = try String(contentsOf: fileURL, encoding: .utf8)
-//                print("\(fil)")
             } catch {
                 print("Error reading the file: \(error)")
             }
@@ -100,62 +94,45 @@ public final class FSMBuilder : Translator {
             print("File not found in the app bundle.")
         }
         
-//        let resourcePaths = Bundle.main.paths(forResourcesOfType: "txt", inDirectory: "")
-        
-        //Wilf: I've placed scannerFSMs.txt in all the subfolders of FSMBuilder
-        //but it can never find the file... Don't know what the problem is.
-        //Also, the do-catch seems unable to catch the error when an attempt
-        //is made to get the text. Instead, it just crashes when attempting to
-        //get the contents of the nil path. What's the point of do-catch down below???
-        
-        //An alternative work around would be to manually let text = "contents of scannerFSMs.txt"
-        //but you'll have to replace internal uses of character $" by \". I've done it below
-        //with a subset of the file...
-        
         let builder = FSMBuilder ();
-//        let path1 = Bundle.main.url (forResource: "scannerFSMs", withExtension: "txt");
-//        let path2 = Bundle.main.path (forResource: "scannerFSMs", ofType: "txt");
         let givenUp = false
         if (givenUp) {
-            //The following is a subset of the scannerFSMs.txt file.
             let text = """
-            scanner
-                fsm1 = $+; //Should default to "RK"
-                fsm2 = $a [noKeep]; //Should have attribute "R"
+
             """
             builder.process (text)
-            print ("Finished building scanner FSMs")
         } else {
-            do {
-//                let text = try String (contentsOf: path1!)
-                let text = fileContent
-                builder.process (text)
-            } catch {
-                print ("File \"scannerFSMS\" not found")
-            }
+            let text = fileContent
+            builder.process (text)
         }
+        
+        print ("Finished building \(grammar.type) FSMs")
+        builder.printOn(fsmMap: builder.fsmMap)
+        
         return "Done"
     }
     
     //Walk routines...
+    // tells you the kind of fsm you're building
     func processTypeNow (_ parameters:[Any]) -> Void {
           //The child will be a walkString with "scanner" or "parser"
         let type = parameters [0] as? String;
         //Tell the grammar what type it is ...
+//        if (type) {
+//            Grammar.type = type
+//        }
     }
       
     func walkList (_ tree: VirtualTree) -> Any {
-        print("In walklist")
         let treeList = (tree as? Tree)!
         var index = 0;
         while (index < treeList.children.count) {
             let child0 = treeList.child(index)
             let child1 = treeList.child(index+1)
-            
+
             let name = (child0 as? Token)!.symbol
             let fsm = walkTree (child1)
-            
-            print ("FSM for \(name) = \n\(fsm)")
+
             fsmMap [name] = fsm
             Grammar.activeGrammar!.addMacro (name, fsm)
             index += 2;
@@ -163,46 +140,256 @@ public final class FSMBuilder : Translator {
         return 0
     }
     
-    func walkCharacter (_ tree : VirtualTree) -> Any {
-        //Build an FSM for this tree and return it...
-        return 0
-    }
-    func walkString (_ tree : VirtualTree) -> Any {
-        //Build an FSM for this tree and return it...
-        return 0;
-    }
-    func walkSymbol (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
-    }
-    func walkIdentifier (_ tree : VirtualTree) -> Any {
-        return 0;
-    }
-    func walkInteger (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
-    }
-    func walkAttributes (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
-    }
-    func walkBuildTreeOrTokenFromName (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
-    }
-    func walkTreeBuildingSemanticAction (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
-    }
-    func walkNonTreeBuildingSemanticAction (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
-    }
-    func walkLook (_ tree : VirtualTree) -> Any {
-      //Build an FSM for this tree and return it...
-      return 0;
+    // for printing the fsm nice like
+    func printOn (fsmMap: Dictionary<String,Any>) {
+        let sortedDict = fsmMap.sorted { (item1, item2) -> Bool in
+            let number1 = extractNumber(from: item1.key)
+            let number2 = extractNumber(from: item2.key)
+
+            return number1 < number2
+        }
+
+        for (key, value) in sortedDict {
+            if let fsm = value as? FiniteStateMachine {
+                print(key)
+                fsm.printOn()
+                print()
+            }
+        }
     }
     
+    // Helper function to extract the numeric part from FSM name
+    func extractNumber(from string: String) -> Int {
+        // Use a regular expression to find the numeric part of the string
+        if let match = string.range(of: "\\d+", options: .regularExpression) {
+            let numberString = string[match]
+            return Int(numberString) ?? 0 // Default to 0 if no number is found
+        }
+        return 0
+    }
+    
+    func walkCharacter (_ tree : VirtualTree) -> Any {
+        //Build an FSM for this tree and return it...
+        let token = tree as! Token
+        let symbol = token.symbol
+        return FiniteStateMachine.forCharacter(symbol)
+    }
+    
+    func walkString (_ tree : VirtualTree) -> Any {
+        //Build an FSM for this tree and return it...
+        let token = tree as! Token
+        let symbol = token.symbol
+        return FiniteStateMachine.forCharacter(symbol)
+    }
+    
+    func walkSymbol (_ tree : VirtualTree) -> Any {
+      //Build an FSM for this tree and return it...
+        let token = tree as! Token
+        let symbol = token.symbol
+        return FiniteStateMachine.forSymbol(symbol)
+    }
+    
+    func walkInteger (_ tree : VirtualTree) -> Any {
+      //Build an FSM for this tree and return it...
+        let token = tree as! Token
+        let symbol = token.symbol
+        return FiniteStateMachine.forInteger(symbol)
+    }
+    
+    func walkIdentifier (_ tree: VirtualTree) -> Any {
+        // Ensure tree is a valid Tree instance
+        let fsmNameToken = tree as! Token
+        let fsmName = fsmNameToken.symbol
+        
+        // Retrieve the FSM to copy
+        guard let fsm = fsmMap[fsmName] as? FiniteStateMachine else {
+            print("Error: FSM named \(fsmName) not found.")
+            return 0
+        }
+        
+        let fsmCopy = FiniteStateMachine.forIdentifier(fsm)
+        return fsmCopy
+    }
+    
+    func walkAttributes (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        // build fsm from first child, other children will be attributes
+        let child0 = tree.child(0)
+        let fsm = walkTree(child0)
+        
+        guard let finiteStateMachine = fsm as? FiniteStateMachine else {
+            print("Error: The FSM returned by walkTree is not of type FiniteStateMachine")
+            return 0
+        }
+        
+        // get attributes
+        var attributes: [String] = []
+        for index in 1..<tree.children.count {
+            if let attributeToken = tree.child(index) as? Token {
+                let symbol = attributeToken.symbol
+                attributes.append(symbol)
+            } else {
+                print("ERROR: Expected child to be a token, but it isn't")
+            }
+        }
+        
+        // override attributes for FSM
+        finiteStateMachine.override(attributes)
+        
+        if let child0Token = child0 as? Token {
+            if (child0Token.label == "walkIdentifier") {
+                let originalFSMName = child0Token.symbol
+                if let originalFSM = fsmMap[originalFSMName] as? FiniteStateMachine {
+                    originalFSM.printOn()
+                    finiteStateMachine.printOn()
+                }
+            }
+        }
+        
+        return finiteStateMachine
+    }
+    
+    func walkbuildTreeOrTokenFromName (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        let child0 = tree.child(0)
+        let symbol = (child0 as? Token)!.symbol
+
+        let transition = Transition()
+        if Grammar.activeGrammar?.type == "scanner" {
+            transition.action = "#buildToken"
+        } else {
+            transition.action = "#buildTree"
+        }
+        
+        transition.parameters = [symbol]
+        transition.isRootBuilding = true
+        
+        let fsm = FiniteStateMachine.fromTransition(transition)
+        return fsm
+    }
+    
+    func walkbuildTreeFromLeftIndex (_ tree: VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        let child0 = tree.child(0)
+        let symbol = (child0 as? Token)!.symbol
+
+        // Convert symbol to an integer and negate it
+        if let integerValue = Int(symbol) {
+            // Create the transition
+            let transition = Transition()
+            transition.action = "#buildTreeFromIndex"
+            transition.parameters = [integerValue]
+            transition.isRootBuilding = true
+
+            return FiniteStateMachine.fromTransition(transition)
+        } else {
+            print("Error: Unable to convert symbol \(symbol) to an integer.")
+            return 0
+        }
+    }
+    
+    func walkbuildTreeFromRightIndex (_ tree: VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        let child0 = tree.child(0)
+        let symbol = (child0 as? Token)!.symbol
+        
+        // Convert symbol to an integer and negate it
+        if let integerValue = Int(symbol) {
+            let negatedValue = -integerValue
+            
+            // Create the transition
+            let transition = Transition()
+            transition.action = "#buildTreeFromIndex"
+            transition.parameters = [negatedValue]
+            transition.isRootBuilding = true
+
+            return FiniteStateMachine.fromTransition(transition)
+        } else {
+            print("Error: Unable to convert symbol \(symbol) to an integer.")
+            return 0
+        }
+    }
+    
+    func walkTreeBuildingSemanticAction (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree.")
+            return 0
+        }
+        let child0 = tree.child(0)
+        return walkSemanticAction(child0, isRootBuilding: true)
+    }
+    
+    func walkNonTreeBuildingSemanticAction (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree.")
+            return 0
+        }
+        let child0 = tree.child(0)
+        return walkSemanticAction(child0, isRootBuilding: false)
+    }
+    
+    func walkSemanticAction (_ tree: VirtualTree, isRootBuilding: Bool) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree.")
+            return 0
+        }
+
+        // Extract the action from the first child (assuming it's a token)
+        let actionToken = tree.child(0) as! Token
+        let actionSymbol = "#" + actionToken.symbol
+
+        // Extract parameters from the remaining children
+        var parameters: [Any] = []
+        for i in 1..<tree.children.count {
+            if let token = tree.child(i) as? Token {
+                let param = token.asConstant()
+                parameters.append(param)
+            }
+        }
+
+        // Create the transition
+        let transition = Transition()
+        transition.action = actionSymbol
+        transition.parameters = parameters
+        transition.isRootBuilding = isRootBuilding
+        
+        return FiniteStateMachine.fromTransition(transition)
+    }
+    
+    func walkLook (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        // build fsm from first child, other children will be attributes
+        let child0 = tree.child(0)
+        let fsm = walkTree(child0)
+        
+        guard let fsmCopy = fsm as? FiniteStateMachine else {
+            print("Error: The FSM returned by walkTree is not of type FiniteStateMachine")
+            return 0
+        }
+        
+        // need to override attributes to "L"
+        fsmCopy.override(["look"])
+        return fsmCopy
+    }
+        
 var scannerTables: Array<Any> = [
     ["ScannerReadaheadTable", 1, ("'", "R", 9), ("]", "RK", 36), ("/", "R", 10), ("{", "RK", 37), ("}", "RK", 38), ("\"", "R", 11), ("$", "R", 12), ([256], "L", 21), ("?", "RK", 32), ("ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz", "RK", 6), ("(", "RK", 23), (")", "RK", 24), ("*", "RK", 25), ("+", "RK", 26), ("-", "RK", 2), ("&", "RK", 22), (".", "RK", 3), ([9,10,12,13,32], "R", 7), ("0123456789", "RK", 4), (";", "RK", 30), ("=", "RK", 5), ("[", "RK", 34), ("#", "R", 8), ("|", "RK", 35)],
     ["ScannerReadaheadTable", 2, ([9,10,12,13,32,96,147,148,256], "L", 27), ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789!,+-/\\*~=@%&?|<[]{}()^;#:.$'\"", "L", 27), (">", "RK", 39)],

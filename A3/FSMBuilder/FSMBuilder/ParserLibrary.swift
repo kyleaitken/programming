@@ -99,6 +99,7 @@ public class Token: VirtualTree, Hashable, Equatable {
     public var description: String {
         return "Token (label: \(label) symbol: \(symbol)"
     }
+    
     public func description (tabs: Int ) -> String {
         var string: String = "\n"
         if tabs > 0 {
@@ -108,6 +109,21 @@ public class Token: VirtualTree, Hashable, Equatable {
         }
         string += description + ")";
         return string
+    }
+    
+    func asConstant() -> Any {
+        switch self.label {
+        case "walkString", "walkSymbol", "walkCharacter", "walkIdentifier":
+            return self.symbol // Return the symbol as a String for these labels
+        case "walkInteger":
+            if let intValue = Int(self.symbol) {
+                return intValue // Convert symbol to Integer if label is "walkInteger"
+            } else {
+                fatalError("Error: Could not convert symbol \(self.symbol) to Integer.")
+            }
+        default:
+            fatalError("Error: Don't know how to convert \(self.symbol) with label \(self.label).")
+        }
     }
 }
 

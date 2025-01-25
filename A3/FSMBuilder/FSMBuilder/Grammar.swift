@@ -14,7 +14,7 @@ public final class Grammar {
     
     init () {
         type = "scanner"
-        nonterminals = ["A", "b", "C"];
+        nonterminals = ["A", "B", "C"];
         macros = [:]
     }
     //finiteStateMachine:
@@ -36,6 +36,17 @@ public final class Grammar {
     
     func isScanner () -> Bool {
         return type == "scanner"
+    }
+    
+    // This function would print out the attributes based on the symbol type.
+    func printAttributes(for symbol: String) {
+        let defaults = Grammar.defaultsFor(symbol)
+        
+        // Get the attribute shorthand from the AttributeList
+        let attributeString = defaults.description
+        
+        // Print the result
+        print("\(symbol): \(attributeString)")
     }
     
     static var activeGrammar: Grammar?
@@ -76,4 +87,6 @@ public final class Grammar {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\\*~=@%&?|<>'[]{}()^;#:.$_\" "
         return printables.contains(Character(UnicodeScalar(anInteger)!))
     }
+    
+    
 }

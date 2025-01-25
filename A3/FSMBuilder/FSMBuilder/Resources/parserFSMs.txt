@@ -8,14 +8,14 @@ parser
    //Have it print attributes as "L" if its look (with none of the other attributes showing up); otherwise
    //use R if its read, S if its stack (or nothing), N if its node (or nothing), K if its keep or nothing.
 
-   fsm1 = a; //The attribute should be print at "RS". 
-   fsm2 = a [read read read read]; //The attribute should still be "RS". Superfluous attributes don't matter.
-   fsm3 = a [read stack node keep]; //The attribute should be "RSNK". The keep attributes is superfluous for a parser.
-   fsm4 = a [read stack node noKeep]; //The attribute should be "RSN". 
-   fsm5 = a [read stack node look]; //The attribute should be "L".
-   fsm6 = a [noStack keep]; //The attribute should be "RK".
-   fsm7 = a [node]; //The attribute should be "RSN".
-   fsm8 = A; //Because of the hack above, the attribute should be "RSN"
+   fsm1 = $a; //The attribute should be print at "RS".
+   fsm2 = $a [read read read read]; //The attribute should still be "RS". Superfluous attributes don't matter.
+   fsm3 = $a [read stack node keep]; //The attribute should be "RSNK". The keep attributes is superfluous for a parser.
+   fsm4 = $a [read stack node noKeep]; //The attribute should be "RSN".
+   fsm5 = $a [read stack node look]; //The attribute should be "L".
+   fsm6 = $a [noStack keep]; //The attribute should be "RK".
+   fsm7 = $a [node]; //The attribute should be "RSN".
+   fsm8 = $A; //Because of the hack above, the attribute should be "RSN"
 
    //The next 3 fsms refer to FSMs on the right... Do not build transitions called fsm1 or fsm9.
    fsm9 = fsm1 [noStack keep]; 
@@ -24,7 +24,7 @@ parser
         //The attribute for the duplicate will be "RK" for fsm9 but the attribute for fsm1 should still be "RS". 
 	//You need to ensure fsm1 is unmodified by the construction of fsm9.
 	//One way of checking is to print fsm1 just before you return fsm9.
-   fsm10 = fsm9 [noNode]; //The attribute for fsm10 should be "RS" but fsm9 should still be "RK".
+   fsm10 = fsm9 [noKeep stack]; //The attribute for fsm10 should be "RS" but fsm9 should still be "RK".
    fsm11 = {fsm9}; //Braces mean LOOK. The attribute should be "L" for fsm11; fsm9 should still be "RK".
 
 

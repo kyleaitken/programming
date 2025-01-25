@@ -21,7 +21,6 @@ public final class FSMBuilder : Translator {
     
     func process (_ text: String) -> Void {
         if let tree = parser!.parse(text) as? Tree {
-//            print("Tree from parser: ", tree)
             walkTree(tree)
         } else {
             print("Failed to parse the text into a Tree")
@@ -78,7 +77,7 @@ public final class FSMBuilder : Translator {
         let grammar = Grammar  ()
         Grammar.activeGrammar = grammar
         // change the type to "parser" to use the parserFSMs file
-        grammar.type = "parser"
+        grammar.type = "scanner"
         
         let fileName = grammar.type == "scanner" ? "scannerFSMs" : "parserFSMs"
         var fileContent = ""

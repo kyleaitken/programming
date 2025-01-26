@@ -188,18 +188,9 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
     func from(_ froms: [Item], relationsDo: (Relationship, Relation) -> Void) {
         // filter triples where triple.from is in the froms array
         let filteredTriples = triples.filter { froms.contains($0.from) }
-        for triple in filteredTriples {
-            print("    \(triple.description)")
-        }
 
         // partition triples based on relationship
         let partitionedTriples = Dictionary(grouping: filteredTriples, by: { $0.relationship })
-        
-        for (relationship, relatedTriples) in partitionedTriples {
-            for triple in relatedTriples {
-                print("        \(triple.description)")
-            }
-        }
 
         // create subrelations based on triples with shared relationship types and pass to closure
         for (relationship, relatedTriples) in partitionedTriples {
@@ -325,26 +316,23 @@ class RelationBuilder {
     var right: Relation<Int, String>
     var down: Relation<Int, String>
     
-    let tupleArr1 = [(2, "G", 3), (3, "G", 4), (7, "A", 7), (6, "C", 7), (7, "a", 8), (1, "d", 2)]
-    let tupleArr2 = [(2, "G", 5), (7, "A", 10), (6, "C", 11), (7, "a", 12), (1, "d", 6)]
-    let tupleArr3 = [
-        (2, "G", 3),  // From 2, relationship "G", to 3
-        (3, "G", 4),  // From 3, relationship "G", to 4
-        (7, "A", 7),  // From 7, relationship "A", to 7
-        (6, "C", 7),  // From 6, relationship "C", to 7
-        (7, "a", 8),  // From 7, relationship "a", to 8
-        (1, "d", 2),  // From 1, relationship "d", to 2
-        (3, "G", 5),  // From 3, relationship "G", to 5
-        (6, "C", 8),  // From 6, relationship "C", to 8
-        (7, "A", 9),  // From 7, relationship "A", to 9
-        (5, "A", 7),  // From 5, relationship "A", to 7
-        (7, "b", 6),  // From 7, relationship "b", to 6
-        (2, "G", 9),  // From 2, relationship "G", to 9
-        (1, "a", 2)   // From 1, relationship "a", to 2
+    let tuples1 = [
+        (2, "G", 3),
+        (3, "G", 4),
+        (7, "A", 7),
+        (6, "C", 7),
+        (7, "a", 8),
+        (1, "d", 2),
+        (3, "G", 5),
+        (6, "C", 8),
+        (7, "A", 9),
+        (5, "A", 7),
+        (2, "G", 9),
+        (1, "a", 2)
     ]
     
-    let tupleArr4 = [
-        (2, "G", 5),  // From 2, relationship "G", to 3
+    let tuples2 = [
+        (2, "G", 5),
         (2, "G", 6),
         (5, "A", 7),
         (5, "A", 8),
@@ -357,12 +345,41 @@ class RelationBuilder {
     ]
 
     init() {
-        self.right = Relation.init(tuples: tupleArr3)
-        self.down = Relation.init(tuples: tupleArr4)
+        self.right = Relation.init(tuples: tuples1)
+        self.down = Relation.init(tuples: tuples2)
     }
         
     func example1() -> Void {
-        // right relationsDo
+        
+        // Test itemsDo
+        right.from([1, 3, 7], itemsDo: { relationship, items in
+            print("Relationship: \(relationship), Items: \(items)")
+        })
+        down.from([2, 4], itemsDo: { relationship, items in
+            print("Relationship: \(relationship), Items: \(items)")
+        })
+        
+        // Test performStar
+        let rightResult = right.performStar(items: [7])
+        print("right performStar result: ", rightResult)
+        // expected {7, 8, 9}
+        
+        let downResult = down.performStar(items: [2])
+        print("down performStar result: ", downResult)
+        // expected {2, 5, 6, 7, 8, 9, 10}
+
+    }
+}
+
+let relationBuilder = RelationBuilder()
+relationBuilder.example1()
+
+
+
+
+// Un-used tests
+
+// right relationsDo
 //        print("\n\nRight relations from {2, 7}:")
 //        right.from([2, 3]) { relationship, subrelation in
 //            print("\nThere is a relationsip \(relationship) with subrelation")
@@ -370,15 +387,8 @@ class RelationBuilder {
 //                print("\n     \(triple)")
 //            }
 //        }
-        
-//        right.from([1, 2, 3, 6, 7], itemsDo: { relationship, items in
-//            print("Relationship: \(relationship), Items: \(items)")
-//        })
-        
-        let result = down.performStar(items: [2, 4])
-        print("performan start result: ", result)
-        
-        // different from sets
+
+// different from sets
 //        for fromCollection in [[2, 1, 6], [1, 7], [2], [7]] {
 //            print("\n\nRight relations from set \(fromCollection):")
 //            right.from(fromCollection) { relationship, subrelation in
@@ -388,8 +398,8 @@ class RelationBuilder {
 //                }
 //            }
 //        }
-        
-        // down relationsDo
+
+// down relationsDo
 //        print("\n\nDown relations from {2, 7}:")
 //        down.from([2, 7]) { relationship, subrelation in
 //            print("\nThere is a relationsip \(relationship) with subrelation")
@@ -397,8 +407,8 @@ class RelationBuilder {
 //                print("\n     \(triple)")
 //            }
 //        }
-        
-        // different from sets
+
+// different from sets
 //        for fromCollection in [[2, 1, 6], [1, 7], [2], [7]] {
 //            print("\n\nDown relations from set \(fromCollection):")
 //            down.from(fromCollection) { relationship, subrelation in
@@ -408,9 +418,3 @@ class RelationBuilder {
 //                }
 //            }
 //        }
-
-    }
-}
-
-let relationBuilder = RelationBuilder()
-relationBuilder.example1()

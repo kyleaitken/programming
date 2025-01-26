@@ -77,7 +77,7 @@ public final class FSMBuilder : Translator {
         let grammar = Grammar  ()
         Grammar.activeGrammar = grammar
         // change the type to "parser" to use the parserFSMs file
-        grammar.type = "scanner"
+        grammar.type = "parser"
         
         let fileName = grammar.type == "scanner" ? "scannerFSMs" : "parserFSMs"
         var fileContent = ""
@@ -111,15 +111,11 @@ public final class FSMBuilder : Translator {
         return "Done"
     }
     
-    //Walk routines...
     // tells you the kind of fsm you're building
     func processTypeNow (_ parameters:[Any]) -> Void {
           //The child will be a walkString with "scanner" or "parser"
         let type = parameters [0] as? String;
         //Tell the grammar what type it is ...
-//        if (type) {
-//            Grammar.type = type
-//        }
     }
       
     func walkList (_ tree: VirtualTree) -> Any {
@@ -174,12 +170,12 @@ public final class FSMBuilder : Translator {
     
     func walkString (_ tree : VirtualTree) -> Any {
         let token = tree as! Token
-        return FiniteStateMachine.forCharacter(token.symbol)
+        return FiniteStateMachine.forString(token.symbol)
     }
     
     func walkSymbol (_ tree : VirtualTree) -> Any {
         let token = tree as! Token
-        return FiniteStateMachine.forSymbol(token.symbol)
+        return FiniteStateMachine.forString(token.symbol)
     }
     
     func walkInteger (_ tree : VirtualTree) -> Any {
@@ -228,17 +224,6 @@ public final class FSMBuilder : Translator {
         
         // override attributes for FSM
         finiteStateMachine.override(attributes)
-        
-        if let child0Token = child0 as? Token {
-            if (child0Token.label == "walkIdentifier") {
-                let originalFSMName = child0Token.symbol
-                if let originalFSM = fsmMap[originalFSMName] as? FiniteStateMachine {
-                    originalFSM.printOn()
-                    finiteStateMachine.printOn()
-                }
-            }
-        }
-        
         return finiteStateMachine
     }
     

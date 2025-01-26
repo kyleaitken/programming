@@ -35,7 +35,16 @@ public class FiniteStateMachine {
     
     static func forCharacter(_ symbol: String) -> FiniteStateMachine {
         let transition = Transition()
-        transition.name = symbol
+        if ((Grammar.activeGrammar?.isScanner()) == true) {
+            print("is scanner")
+            // store character as ASCII int
+            if let asciiValue = symbol.first?.asciiValue {
+                print("ASCII Value for \(symbol): \(asciiValue)") // This prints the ASCII value
+                transition.name = "\(asciiValue)"
+            }
+        } else {
+            transition.name = symbol
+        }
         transition.attributes = Grammar.defaultsFor(symbol)
         
         return fromTransition(transition)
@@ -43,14 +52,6 @@ public class FiniteStateMachine {
     
     static func forString(_ symbol: String) -> FiniteStateMachine {
         let transition = Transition ()
-        transition.name = symbol
-        transition.attributes = Grammar.defaultsFor(symbol)
-        
-        return fromTransition(transition)
-    }
-    
-    static func forSymbol(_ symbol: String) -> FiniteStateMachine {
-        let transition = Transition()
         transition.name = symbol
         transition.attributes = Grammar.defaultsFor(symbol)
         
@@ -183,9 +184,21 @@ public class Transition {
     func printOn() {
         if (hasAction()) {
             print("\t\(action) \(parameters) rootBuilding: \(isRootBuilding) goto \(goto?.stateNumber ?? -1)")
-        } else {
-            print("\t\(name) \"\(attributes.description)\" goto \(goto?.stateNumber ?? -1)")
+            return
         }
+        var nameToPrint = name
+        
+        // if it's a scanner, see if char/int is printable
+        if (Grammar.activeGrammar?.isScanner() == true) {
+            if let intSymbol = Int(name) {
+                if Grammar.isPrintable(intSymbol) {
+                    let asciiChar = Character(UnicodeScalar(intSymbol)!)
+                    nameToPrint = String(asciiChar)
+                }
+            }
+        }
+           
+        print("\t\(nameToPrint) \"\(attributes.description)\" goto \(goto?.stateNumber ?? -1)")
      }
     
     func copy() -> Transition {

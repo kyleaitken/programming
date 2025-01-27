@@ -146,24 +146,6 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
         return Array(Set(toItems))
     }
     
-//    func performStar(items: [Item]) -> [Item] {
-//        var result = items
-//        var index = 0
-//        
-//        // loop over result, get all relationships with 'from' for that item, add the 'to' to the set if not there
-//        while (index < result.count) {//
-//            let item = result[index]
-//            self.from([item], itemsDo: { _, moreItems in
-//                for moreItem in moreItems {
-//                    result.appendIfAbsent(moreItem)
-//                }
-//            })
-//            index += 1
-//        }
-//        
-//        return result.sorted()
-//    }
-    
     func performStar(items: [Item]) -> [Item] {
         var result = Set(items)
         var itemsToProcess = Set(items)
@@ -312,69 +294,71 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
 }
 
 
-class RelationBuilder {
-    var right: Relation<Int, String>
-    var down: Relation<Int, String>
-    
-    let tuples1 = [
-        (2, "G", 3),
-        (3, "G", 4),
-        (7, "A", 7),
-        (6, "C", 7),
-        (7, "a", 8),
-        (1, "d", 2),
-        (3, "G", 5),
-        (6, "C", 8),
-        (7, "A", 9),
-        (5, "A", 7),
-        (2, "G", 9),
-        (1, "a", 2)
-    ]
-    
-    let tuples2 = [
-        (2, "G", 5),
-        (2, "G", 6),
-        (5, "A", 7),
-        (5, "A", 8),
-        (5, "A", 9),
-        (6, "B", 10),
-        (4, "C", 5),
-        (4, "E", 9),
-        (4, "F", 7),
-        (7, "G", 9)
-    ]
+class RelationBuilder<Item: Relatable, Relationship: Relatable> {
+    var right: Relation<Item, Relationship>
+    var down: Relation<Item, Relationship>
 
     init() {
-        self.right = Relation.init(tuples: tuples1)
-        self.down = Relation.init(tuples: tuples2)
+        // Provide default values for the relations
+        self.right = Relation<Item, Relationship>(tuples: [])
+        self.down = Relation<Item, Relationship>(tuples: [])
     }
         
-    func example1() -> Void {
+    static func example1() -> Void {
+        let relBuilder = RelationBuilder<Int, String>()
+        
+        let tuples1: [(Int, String, Int)] = [
+            (2, "G", 3),
+            (3, "G", 4),
+            (7, "A", 7),
+            (6, "C", 7),
+            (7, "a", 8),
+            (1, "d", 2),
+            (3, "G", 5),
+            (6, "C", 8),
+            (7, "A", 9),
+            (5, "A", 7),
+            (2, "G", 9),
+            (1, "a", 2)
+        ]
+        
+        let tuples2: [(Int, String, Int)] = [
+            (2, "G", 5),
+            (2, "G", 6),
+            (5, "A", 7),
+            (5, "A", 8),
+            (5, "A", 9),
+            (6, "B", 10),
+            (4, "C", 5),
+            (4, "E", 9),
+            (4, "F", 7),
+            (7, "G", 9)
+        ]
+
+        relBuilder.right = Relation<Int, String>(tuples: tuples1)
+        relBuilder.down = Relation<Int, String>(tuples: tuples2)
         
         // Test itemsDo
-        right.from([1, 3, 7], itemsDo: { relationship, items in
+        relBuilder.right.from([1, 3, 7], itemsDo: { relationship, items in
             print("Relationship: \(relationship), Items: \(items)")
         })
-        down.from([2, 4], itemsDo: { relationship, items in
+        relBuilder.down.from([2, 4], itemsDo: { relationship, items in
             print("Relationship: \(relationship), Items: \(items)")
         })
         
         // Test performStar
-        let rightResult = right.performStar(items: [7])
+        let rightResult = relBuilder.right.performStar(items: [7])
         print("right performStar result: ", rightResult)
         // expected {7, 8, 9}
         
-        let downResult = down.performStar(items: [2])
+        let downResult = relBuilder.down.performStar(items: [2])
         print("down performStar result: ", downResult)
         // expected {2, 5, 6, 7, 8, 9, 10}
 
     }
 }
 
-let relationBuilder = RelationBuilder()
-relationBuilder.example1()
-
-
+RelationBuilder<Int,String>.example1()
 
 
 // Un-used tests

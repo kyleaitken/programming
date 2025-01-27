@@ -94,16 +94,8 @@ public final class FSMBuilder : Translator {
         }
         
         let builder = FSMBuilder ();
-        let givenUp = false
-        if (givenUp) {
-            let text = """
-
-            """
-            builder.process (text)
-        } else {
-            let text = fileContent
-            builder.process (text)
-        }
+        let text = fileContent
+        builder.process (text)
         
         print ("Finished building \(grammar.type) FSMs")
         builder.printOn(fsmMap: builder.fsmMap)
@@ -235,45 +227,19 @@ public final class FSMBuilder : Translator {
         
         let child0 = tree.child(0)
         let symbol = (child0 as? Token)!.symbol
-
-        let transition = Transition()
-        if Grammar.activeGrammar?.type == "scanner" {
-            transition.action = "#buildToken"
-        } else {
-            transition.action = "#buildTree"
-        }
-        
-        transition.parameters = [symbol]
-        transition.isRootBuilding = true
-        
-        let fsm = FiniteStateMachine.fromTransition(transition)
-        return fsm
+        let action = Grammar.activeGrammar?.type == "scanner" ? "#buildToken" : "#buildTree"
+        return FiniteStateMachine.forAction([symbol], isRootBuilding: true, actionName: action)
     }
     
-    func walkbuildTreeFromLeftIndex (_ tree: VirtualTree) -> Any {
-        guard let tree = tree as? Tree else {
-            print("Error: Expected tree to be of type Tree, but it's not.")
-            return 0
-        }
-        let child0 = tree.child(0)
-        let symbol = (child0 as? Token)!.symbol
-
-        // Convert symbol to an integer and negate it
-        if let integerValue = Int(symbol) {
-            // Create the transition
-            let transition = Transition()
-            transition.action = "#buildTreeFromIndex"
-            transition.parameters = [integerValue]
-            transition.isRootBuilding = true
-
-            return FiniteStateMachine.fromTransition(transition)
-        } else {
-            print("Error: Unable to convert symbol \(symbol) to an integer.")
-            return 0
-        }
+    func walkbuildTreeFromLeftIndex(_ tree: VirtualTree) -> Any {
+        return walkbuildTreeFromIndex(tree, negate: false)
     }
     
-    func walkbuildTreeFromRightIndex (_ tree: VirtualTree) -> Any {
+    func walkbuildTreeFromRightIndex(_ tree: VirtualTree) -> Any {
+        return walkbuildTreeFromIndex(tree, negate: true)
+    }
+    
+    func walkbuildTreeFromIndex(_ tree: VirtualTree, negate: Bool) -> Any {
         guard let tree = tree as? Tree else {
             print("Error: Expected tree to be of type Tree, but it's not.")
             return 0
@@ -281,17 +247,10 @@ public final class FSMBuilder : Translator {
         let child0 = tree.child(0)
         let symbol = (child0 as? Token)!.symbol
         
-        // Convert symbol to an integer and negate it
+        // Convert symbol to an integer
         if let integerValue = Int(symbol) {
-            let negatedValue = -integerValue
-            
-            // Create the transition
-            let transition = Transition()
-            transition.action = "#buildTreeFromIndex"
-            transition.parameters = [negatedValue]
-            transition.isRootBuilding = true
-
-            return FiniteStateMachine.fromTransition(transition)
+            let value = negate ? -integerValue : integerValue
+            return FiniteStateMachine.forAction([value], isRootBuilding: true, actionName: "#buildTreeFromIndex")
         } else {
             print("Error: Unable to convert symbol \(symbol) to an integer.")
             return 0
@@ -334,14 +293,8 @@ public final class FSMBuilder : Translator {
                 parameters.append(param)
             }
         }
-
-        // Create the transition
-        let transition = Transition()
-        transition.action = actionSymbol
-        transition.parameters = parameters
-        transition.isRootBuilding = isRootBuilding
         
-        return FiniteStateMachine.fromTransition(transition)
+        return FiniteStateMachine.forAction(parameters, isRootBuilding: isRootBuilding, actionName: actionSymbol)
     }
     
     func walkLook (_ tree : VirtualTree) -> Any {

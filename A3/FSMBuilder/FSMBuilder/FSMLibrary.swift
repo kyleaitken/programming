@@ -36,24 +36,22 @@ public class FiniteStateMachine {
     static func forCharacter(_ symbol: String) -> FiniteStateMachine {
         let transition = Transition()
         if ((Grammar.activeGrammar?.isScanner()) == true) {
-            print("is scanner")
             // store character as ASCII int
             if let asciiValue = symbol.first?.asciiValue {
-                print("ASCII Value for \(symbol): \(asciiValue)") // This prints the ASCII value
-                transition.name = "\(asciiValue)"
+                transition.label.name = "\(asciiValue)"
             }
         } else {
-            transition.name = symbol
+            transition.label.name = symbol
         }
-        transition.attributes = Grammar.defaultsFor(symbol)
+        transition.label.attributes = Grammar.defaultsFor(symbol)
         
         return fromTransition(transition)
     }
     
     static func forString(_ symbol: String) -> FiniteStateMachine {
         let transition = Transition ()
-        transition.name = symbol
-        transition.attributes = Grammar.defaultsFor(symbol)
+        transition.label.name = symbol
+        transition.label.attributes = Grammar.defaultsFor(symbol)
         
         return fromTransition(transition)
     }
@@ -62,20 +60,20 @@ public class FiniteStateMachine {
         let transition = Transition()
         let intSymbol = Int(symbol)
         if Grammar.isPrintable(intSymbol!) {
-            transition.name = String(Character(UnicodeScalar(intSymbol!)!))
+            transition.label.name = String(Character(UnicodeScalar(intSymbol!)!))
         } else {
-            transition.name = symbol
+            transition.label.name = symbol
         }
-        transition.attributes = Grammar.defaultsFor(symbol)
+        transition.label.attributes = Grammar.defaultsFor(symbol)
         
         return fromTransition(transition)
     }
     
     static func forAction(_ parameters: Array<Any>, isRootBuilding: Bool, actionName: String) -> FiniteStateMachine {
         let transition = Transition ()
-        transition.parameters = parameters
-        transition.isRootBuilding = isRootBuilding
-        transition.action = actionName
+        transition.label.parameters = parameters
+        transition.label.isRootBuilding = isRootBuilding
+        transition.label.action = actionName
         
         return fromTransition(transition)
     }
@@ -165,25 +163,50 @@ public class FiniteStateMachineState {
 }
 
 public class Transition {
+    var goto: FiniteStateMachineState?
+    var label: Label
+
+    func override (_ attributes: Array<String>) {
+        if self.label.hasAction () {return}
+        self.label.override(attributes)
+    }
+    
+    init(){
+        self.label = Label ()
+    }
+    
+    func printOn() {
+        label.printOn()
+        print("\tgoto \(goto?.stateNumber ?? -1)")
+    }
+
+    func copy() -> Transition {
+        let newTransition = Transition()
+        newTransition.label = label.copy()
+        return newTransition
+    }
+}
+
+public class Label {
     var name: String = ""
     var attributes: AttributeList = AttributeList ().set (["look", "noStack", "noKeep", "noNode"])
     var action: String = ""
     var parameters: Array<Any> = []
     var isRootBuilding: Bool = false
-    var goto: FiniteStateMachineState?
+    
+    init() {}
     
     func hasAttributes () -> Bool {return name != ""}
     func hasAction () -> Bool {return action != ""}
-
-    func override (_ attributes: Array<String>) {
-        if self.hasAction () {return}
-        self.attributes.override (attributes)
+    
+    func override(_ attributes: Array<String>) {
+        if self.hasAction() { return }
+        self.attributes.override(attributes)
     }
-    init(){}
     
     func printOn() {
         if (hasAction()) {
-            print("\t\(action) \(parameters) rootBuilding: \(isRootBuilding) goto \(goto?.stateNumber ?? -1)")
+            print("\t\(action) \(parameters) rootBuilding: \(isRootBuilding)")
             return
         }
         var nameToPrint = name
@@ -198,19 +221,20 @@ public class Transition {
             }
         }
            
-        print("\t\(nameToPrint) \"\(attributes.description)\" goto \(goto?.stateNumber ?? -1)")
+        print("\t\(nameToPrint) \"\(attributes.description)\"")
      }
     
-    func copy() -> Transition {
-        let newTransition = Transition()
-        newTransition.name = self.name
-        newTransition.attributes = self.attributes.copy()
-        newTransition.action = self.action
-        newTransition.parameters = self.parameters
-        newTransition.isRootBuilding = self.isRootBuilding
-        return newTransition
+    func copy() -> Label {
+        let newLabel = Label()
+        newLabel.name = self.name
+        newLabel.attributes = self.attributes.copy()
+        newLabel.action = self.action
+        newLabel.parameters = self.parameters
+        newLabel.isRootBuilding = self.isRootBuilding
+        return newLabel
     }
 }
+
 
 public class AttributeList {
     var isRead: Bool = false

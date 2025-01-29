@@ -56,6 +56,12 @@ public final class FSMBuilder : Translator {
             return walkNonTreeBuildingSemanticAction (tree)
         case "walkLook":
             return walkLook (tree)
+        case "walkPlus":
+            return walkPlus (tree)
+        case "walkEpsilon":
+            return walkEpsilon (tree)
+        case "walkQuestionMark":
+            return walkQuestionMark (tree)
         default:
             error ("Attempt to perform unknown walkTree routine \(action)")
             return 0
@@ -155,9 +161,35 @@ public final class FSMBuilder : Translator {
         return 0
     }
     
+    // create an empty FSM
+    func walkEpsilon (_ tree : VirtualTree) -> Any {
+        return FiniteStateMachine.empty()
+    }
+    
     func walkCharacter (_ tree : VirtualTree) -> Any {
         let token = tree as! Token
         return FiniteStateMachine.forCharacter(token.symbol)
+    }
+    
+    func walkPlus (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        // should build an fsm with +
+        let child = tree.child(0)
+        let fsm = walkTree(child) as? FiniteStateMachine
+        return fsm!.plus()
+    }
+    
+    func walkQuestionMark (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        let child = tree.child(0)
+        let fsm = walkTree(child) as? FiniteStateMachine
+        return fsm?.or(otherFSM: FiniteStateMachine.empty()) as Any
     }
     
     func walkString (_ tree : VirtualTree) -> Any {
@@ -371,112 +403,109 @@ var scannerTables: Array<Any> = [
 var parserTables: Array<Any> =
     [
        ["keywords", "stack", "noStack", "read", "look", "node", "noNode", "keep", "noKeep", "parser", "scanner"],
-       ["ReadaheadTable", 1, ("parser", "RS", 104), ("scanner", "RS", 105), ("GrammarType", "RSN", 2), ("ListOfFiniteStateMachines", "RSN", 106)],
-       ["ReadaheadTable", 2, ("walkString", "RSN", 40), ("Name", "RSN", 3), ("walkIdentifier", "RSN", 40), ("EndOfFile", "L", 32)],
+       ["ReadaheadTable", 1, ("parser", "RS", 103), ("scanner", "RS", 104), ("GrammarType", "RSN", 2), ("ListOfFiniteStateMachines", "RSN", 105)],
+       ["ReadaheadTable", 2, ("walkString", "RSN", 39), ("Name", "RSN", 3), ("walkIdentifier", "RSN", 39), ("EndOfFile", "L", 31)],
        ["ReadaheadTable", 3, ("=", "RS", 4)],
-       ["ReadaheadTable", 4, ("Primary", "RSN", 5), ("walkString", "RSN", 40), ("Alternation", "RSN", 6), ("Byte", "RSN", 7), ("FiniteStateMachine", "RSN", 8), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 44), ("SemanticAction", "RSN", 49), ("(", "RS", 10), ("walkCharacter", "RSN", 44), ("{", "RS", 11), ("walkIdentifier", "RSN", 40), ("=>", "RS", 12), ("Expression", "RSN", 13), ("Concatenation", "RSN", 14), ("RepetitionOption", "RSN", 15), ("Name", "RSN", 43)],
-       ["ReadaheadTable", 5, ("[", "RS", 16), ("*", "L", 41), ("?", "L", 41), ("+", "L", 41), ("&", "L", 41), ("-", "L", 41), ("(", "L", 41), ("{", "L", 41), ("walkIdentifier", "L", 41), ("walkString", "L", 41), ("walkSymbol", "L", 41), ("walkCharacter", "L", 41), ("walkInteger", "L", 41), ("|", "L", 41), (")", "L", 41), ("}", "L", 41), ("=>", "L", 41), (";", "L", 41)],
-       ["ReadaheadTable", 6, ("=>", "RS", 17), (";", "L", 42)],
-       ["ReadaheadTable", 7, ("..", "RS", 18), ("[", "L", 43), ("*", "L", 43), ("?", "L", 43), ("+", "L", 43), ("&", "L", 43), ("-", "L", 43), ("(", "L", 43), ("{", "L", 43), ("walkIdentifier", "L", 43), ("walkString", "L", 43), ("walkSymbol", "L", 43), ("walkCharacter", "L", 43), ("walkInteger", "L", 43), ("|", "L", 43), (")", "L", 43), ("}", "L", 43), ("=>", "L", 43), (";", "L", 43)],
-       ["ReadaheadTable", 8, (";", "RS", 19)],
-       ["ReadaheadTable", 9, ("[", "RS", 20), ("*", "L", 48), ("?", "L", 48), ("+", "L", 48), ("&", "L", 48), ("-", "L", 48), ("(", "L", 48), ("{", "L", 48), ("walkIdentifier", "L", 48), ("walkString", "L", 48), ("walkSymbol", "L", 48), ("walkCharacter", "L", 48), ("walkInteger", "L", 48), (";", "L", 48), ("|", "L", 48), (")", "L", 48), ("}", "L", 48), ("=>", "L", 48)],
-       ["ReadaheadTable", 10, ("Primary", "RSN", 5), ("walkString", "RSN", 40), ("Alternation", "RSN", 21), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 44), ("SemanticAction", "RSN", 49), ("(", "RS", 10), ("walkCharacter", "RSN", 44), ("{", "RS", 11), ("walkIdentifier", "RSN", 40), ("Expression", "RSN", 13), ("Concatenation", "RSN", 14), ("RepetitionOption", "RSN", 15), ("Name", "RSN", 43)],
-       ["ReadaheadTable", 11, ("Primary", "RSN", 5), ("Alternation", "RSN", 22), ("walkString", "RSN", 40), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 44), ("(", "RS", 10), ("SemanticAction", "RSN", 49), ("walkCharacter", "RSN", 44), ("{", "RS", 11), ("walkIdentifier", "RSN", 40), ("Expression", "RSN", 13), ("Concatenation", "RSN", 14), ("RepetitionOption", "RSN", 15), ("Name", "RSN", 43)],
-       ["ReadaheadTable", 12, ("walkSymbol", "RSN", 9), ("-", "RS", 23), ("walkString", "RSN", 40), ("Name", "RSN", 54), ("walkIdentifier", "RSN", 40), ("TreeBuildingOptions", "RSN", 50), ("+", "RS", 24), ("walkInteger", "RSN", 55), ("SemanticAction", "RSN", 56)],
-       ["ReadaheadTable", 13, ("*", "RS", 57), ("?", "RS", 58), ("+", "RS", 59), ("&", "RS", 25), ("-", "RS", 26), ("(", "L", 45), ("{", "L", 45), ("walkIdentifier", "L", 45), ("walkString", "L", 45), ("walkSymbol", "L", 45), ("walkCharacter", "L", 45), ("walkInteger", "L", 45), ("|", "L", 45), (")", "L", 45), ("}", "L", 45), ("=>", "L", 45), (";", "L", 45)],
-       ["ReadaheadTable", 14, ("|", "RS", 27), (")", "L", 46), ("}", "L", 46), ("=>", "L", 46), (";", "L", 46)],
-       ["ReadaheadTable", 15, ("Primary", "RSN", 5), ("walkString", "RSN", 40), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 44), ("SemanticAction", "RSN", 49), ("(", "RS", 10), ("walkCharacter", "RSN", 44), ("{", "RS", 11), ("walkIdentifier", "RSN", 40), ("Expression", "RSN", 13), ("RepetitionOption", "RSN", 28), ("Name", "RSN", 43), ("|", "L", 47), (")", "L", 47), ("}", "L", 47), ("=>", "L", 47), (";", "L", 47)],
-       ["ReadaheadTable", 16, ("Attribute", "RSN", 29), ("keep", "RSN", 51), ("noNode", "RSN", 51), ("noStack", "RSN", 51), ("]", "RS", 61), ("read", "RSN", 51), ("look", "RSN", 51), ("stack", "RSN", 51), ("node", "RSN", 51), ("noKeep", "RSN", 51)],
-       ["ReadaheadTable", 17, ("walkString", "RSN", 40), ("-", "RS", 23), ("walkSymbol", "RSN", 9), ("Name", "RSN", 54), ("walkIdentifier", "RSN", 40), ("TreeBuildingOptions", "RSN", 62), ("+", "RS", 24), ("walkInteger", "RSN", 55), ("SemanticAction", "RSN", 56)],
-       ["ReadaheadTable", 18, ("Byte", "RSN", 63), ("walkInteger", "RSN", 44), ("walkCharacter", "RSN", 44)],
-       ["ReadaheadTable", 19, ("walkString", "RSN", 40), ("Name", "RSN", 3), ("walkIdentifier", "RSN", 40), ("EndOfFile", "L", 32)],
-       ["ReadaheadTable", 20, ("walkString", "RSN", 40), ("walkSymbol", "RSN", 52), ("Name", "RSN", 52), ("walkIdentifier", "RSN", 40), ("Byte", "RSN", 52), ("walkCharacter", "RSN", 44), ("]", "RS", 64), ("SemanticActionParameter", "RSN", 30), ("walkInteger", "RSN", 44)],
-       ["ReadaheadTable", 21, (")", "RS", 53)],
-       ["ReadaheadTable", 22, ("}", "RS", 65)],
-       ["ReadaheadTable", 23, ("walkInteger", "RSN", 66)],
-       ["ReadaheadTable", 24, ("walkInteger", "RSN", 55)],
-       ["ReadaheadTable", 25, ("walkSymbol", "RSN", 9), ("Expression", "RSN", 67), ("Primary", "RSN", 5), ("walkString", "RSN", 40), ("Name", "RSN", 43), ("Byte", "RSN", 7), ("walkIdentifier", "RSN", 40), ("{", "RS", 11), ("walkCharacter", "RSN", 44), ("SemanticAction", "RSN", 49), ("walkInteger", "RSN", 44), ("(", "RS", 10)],
-       ["ReadaheadTable", 26, ("walkString", "RSN", 40), ("Expression", "RSN", 68), ("Primary", "RSN", 5), ("walkSymbol", "RSN", 9), ("Name", "RSN", 43), ("walkCharacter", "RSN", 44), ("walkIdentifier", "RSN", 40), ("{", "RS", 11), ("Byte", "RSN", 7), ("walkInteger", "RSN", 44), ("SemanticAction", "RSN", 49), ("(", "RS", 10)],
-       ["ReadaheadTable", 27, ("Primary", "RSN", 5), ("walkString", "RSN", 40), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 44), ("SemanticAction", "RSN", 49), ("(", "RS", 10), ("walkCharacter", "RSN", 44), ("{", "RS", 11), ("walkIdentifier", "RSN", 40), ("Expression", "RSN", 13), ("Concatenation", "RSN", 31), ("RepetitionOption", "RSN", 15), ("Name", "RSN", 43)],
-       ["ReadaheadTable", 28, ("Primary", "RSN", 5), ("walkString", "RSN", 40), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 44), ("SemanticAction", "RSN", 49), ("(", "RS", 10), ("walkCharacter", "RSN", 44), ("{", "RS", 11), ("walkIdentifier", "RSN", 40), ("Expression", "RSN", 13), ("RepetitionOption", "RSN", 28), ("Name", "RSN", 43), ("|", "L", 60), (")", "L", 60), ("}", "L", 60), ("=>", "L", 60), (";", "L", 60)],
-       ["ReadaheadTable", 29, ("Attribute", "RSN", 29), ("keep", "RSN", 51), ("noNode", "RSN", 51), ("noStack", "RSN", 51), ("]", "RS", 61), ("read", "RSN", 51), ("look", "RSN", 51), ("stack", "RSN", 51), ("node", "RSN", 51), ("noKeep", "RSN", 51)],
-       ["ReadaheadTable", 30, ("walkString", "RSN", 40), ("walkSymbol", "RSN", 52), ("SemanticActionParameter", "RSN", 30), ("walkCharacter", "RSN", 44), ("]", "RS", 64), ("walkIdentifier", "RSN", 40), ("Byte", "RSN", 52), ("Name", "RSN", 52), ("walkInteger", "RSN", 44)],
-       ["ReadaheadTable", 31, ("|", "RS", 27), (")", "L", 69), ("}", "L", 69), ("=>", "L", 69), (";", "L", 69)],
-       ["ReadbackTable", 32, (("GrammarType", 2), "RSN", 87), ((";", 19), "RS", 70)],
-       ["ReadbackTable", 33, (("+", 24), "RS", 91), (("=>", 12), "L", 91), (("=>", 17), "L", 91)],
-       ["ReadbackTable", 34, (("RepetitionOption", 28), "RSN", 34), (("RepetitionOption", 15), "RSN", 96)],
-       ["ReadbackTable", 35, (("Attribute", 29), "RSN", 35), (("[", 16), "RS", 72)],
-       ["ReadbackTable", 36, (("[", 20), "RS", 48), (("SemanticActionParameter", 30), "RSN", 36)],
-       ["ReadbackTable", 37, (("Concatenation", 14), "RSN", 103), (("Concatenation", 31), "RSN", 71)],
-       ["ReadbackTable", 38, (("GrammarType", 2), "RSN", 87), ((";", 19), "RS", 70)],
-       ["ShiftbackTable", 39, 1, 81],
-       ["ShiftbackTable", 40, 1, 77],
-       ["ShiftbackTable", 41, 1, 73],
-       ["ShiftbackTable", 42, 1, 85],
+       ["ReadaheadTable", 4, ("Primary", "RSN", 5), ("walkString", "RSN", 39), ("Alternation", "RSN", 6), ("Byte", "RSN", 7), ("FiniteStateMachine", "RSN", 8), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 43), ("SemanticAction", "RSN", 48), ("(", "RS", 10), ("walkCharacter", "RSN", 43), ("{", "RS", 11), ("walkIdentifier", "RSN", 39), ("Expression", "RSN", 12), ("Concatenation", "RSN", 13), ("RepetitionOption", "RSN", 14), ("Name", "RSN", 42), (")", "L", 86), ("}", "L", 86), ("=>", "L", 86), (";", "L", 86)],
+       ["ReadaheadTable", 5, ("[", "RS", 15), ("*", "L", 40), ("?", "L", 40), ("+", "L", 40), ("&", "L", 40), ("-", "L", 40), ("(", "L", 40), ("{", "L", 40), ("walkIdentifier", "L", 40), ("walkString", "L", 40), ("walkSymbol", "L", 40), ("walkCharacter", "L", 40), ("walkInteger", "L", 40), ("|", "L", 40), (")", "L", 40), ("}", "L", 40), ("=>", "L", 40), (";", "L", 40)],
+       ["ReadaheadTable", 6, ("=>", "RS", 16), (";", "L", 41)],
+       ["ReadaheadTable", 7, ("..", "RS", 17), ("[", "L", 42), ("*", "L", 42), ("?", "L", 42), ("+", "L", 42), ("&", "L", 42), ("-", "L", 42), ("(", "L", 42), ("{", "L", 42), ("walkIdentifier", "L", 42), ("walkString", "L", 42), ("walkSymbol", "L", 42), ("walkCharacter", "L", 42), ("walkInteger", "L", 42), ("|", "L", 42), (")", "L", 42), ("}", "L", 42), ("=>", "L", 42), (";", "L", 42)],
+       ["ReadaheadTable", 8, (";", "RS", 18)],
+       ["ReadaheadTable", 9, ("[", "RS", 19), ("*", "L", 47), ("?", "L", 47), ("+", "L", 47), ("&", "L", 47), ("-", "L", 47), ("(", "L", 47), ("{", "L", 47), ("walkIdentifier", "L", 47), ("walkString", "L", 47), ("walkSymbol", "L", 47), ("walkCharacter", "L", 47), ("walkInteger", "L", 47), (";", "L", 47), ("|", "L", 47), (")", "L", 47), ("}", "L", 47), ("=>", "L", 47)],
+       ["ReadaheadTable", 10, ("Primary", "RSN", 5), ("walkString", "RSN", 39), ("Alternation", "RSN", 20), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 43), ("SemanticAction", "RSN", 48), ("(", "RS", 10), ("walkCharacter", "RSN", 43), ("{", "RS", 11), ("walkIdentifier", "RSN", 39), ("Expression", "RSN", 12), ("Concatenation", "RSN", 13), ("RepetitionOption", "RSN", 14), ("Name", "RSN", 42), (")", "L", 86), ("}", "L", 86), ("=>", "L", 86), (";", "L", 86)],
+       ["ReadaheadTable", 11, ("Primary", "RSN", 5), ("Alternation", "RSN", 21), ("walkString", "RSN", 39), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 43), ("(", "RS", 10), ("SemanticAction", "RSN", 48), ("walkCharacter", "RSN", 43), ("{", "RS", 11), ("walkIdentifier", "RSN", 39), ("Expression", "RSN", 12), ("Concatenation", "RSN", 13), ("RepetitionOption", "RSN", 14), ("Name", "RSN", 42), (")", "L", 86), ("}", "L", 86), ("=>", "L", 86), (";", "L", 86)],
+       ["ReadaheadTable", 12, ("*", "RS", 52), ("?", "RS", 53), ("+", "RS", 54), ("&", "RS", 22), ("-", "RS", 23), ("(", "L", 44), ("{", "L", 44), ("walkIdentifier", "L", 44), ("walkString", "L", 44), ("walkSymbol", "L", 44), ("walkCharacter", "L", 44), ("walkInteger", "L", 44), ("|", "L", 44), (")", "L", 44), ("}", "L", 44), ("=>", "L", 44), (";", "L", 44)],
+       ["ReadaheadTable", 13, ("|", "RS", 24), (")", "L", 45), ("}", "L", 45), ("=>", "L", 45), (";", "L", 45)],
+       ["ReadaheadTable", 14, ("Primary", "RSN", 5), ("walkString", "RSN", 39), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 43), ("SemanticAction", "RSN", 48), ("(", "RS", 10), ("walkCharacter", "RSN", 43), ("{", "RS", 11), ("walkIdentifier", "RSN", 39), ("Expression", "RSN", 12), ("RepetitionOption", "RSN", 25), ("Name", "RSN", 42), ("|", "L", 46), (")", "L", 46), ("}", "L", 46), ("=>", "L", 46), (";", "L", 46)],
+       ["ReadaheadTable", 15, ("Attribute", "RSN", 26), ("keep", "RSN", 49), ("noNode", "RSN", 49), ("noStack", "RSN", 49), ("]", "RS", 56), ("read", "RSN", 49), ("look", "RSN", 49), ("stack", "RSN", 49), ("node", "RSN", 49), ("noKeep", "RSN", 49)],
+       ["ReadaheadTable", 16, ("walkString", "RSN", 39), ("-", "RS", 27), ("walkSymbol", "RSN", 9), ("Name", "RSN", 57), ("walkIdentifier", "RSN", 39), ("TreeBuildingOptions", "RSN", 58), ("+", "RS", 28), ("walkInteger", "RSN", 59), ("SemanticAction", "RSN", 60)],
+       ["ReadaheadTable", 17, ("Byte", "RSN", 61), ("walkInteger", "RSN", 43), ("walkCharacter", "RSN", 43)],
+       ["ReadaheadTable", 18, ("walkString", "RSN", 39), ("Name", "RSN", 3), ("walkIdentifier", "RSN", 39), ("EndOfFile", "L", 31)],
+       ["ReadaheadTable", 19, ("walkString", "RSN", 39), ("walkSymbol", "RSN", 50), ("Name", "RSN", 50), ("walkIdentifier", "RSN", 39), ("Byte", "RSN", 50), ("walkCharacter", "RSN", 43), ("]", "RS", 62), ("SemanticActionParameter", "RSN", 29), ("walkInteger", "RSN", 43)],
+       ["ReadaheadTable", 20, (")", "RS", 51)],
+       ["ReadaheadTable", 21, ("}", "RS", 63)],
+       ["ReadaheadTable", 22, ("walkSymbol", "RSN", 9), ("walkString", "RSN", 39), ("Primary", "RSN", 5), ("Expression", "RSN", 64), ("Name", "RSN", 42), ("Byte", "RSN", 7), ("walkIdentifier", "RSN", 39), ("{", "RS", 11), ("walkCharacter", "RSN", 43), ("SemanticAction", "RSN", 48), ("walkInteger", "RSN", 43), ("(", "RS", 10)],
+       ["ReadaheadTable", 23, ("walkSymbol", "RSN", 9), ("walkString", "RSN", 39), ("Primary", "RSN", 5), ("Expression", "RSN", 65), ("Name", "RSN", 42), ("Byte", "RSN", 7), ("walkIdentifier", "RSN", 39), ("{", "RS", 11), ("walkCharacter", "RSN", 43), ("SemanticAction", "RSN", 48), ("walkInteger", "RSN", 43), ("(", "RS", 10)],
+       ["ReadaheadTable", 24, ("Primary", "RSN", 5), ("walkString", "RSN", 39), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 43), ("SemanticAction", "RSN", 48), ("(", "RS", 10), ("walkCharacter", "RSN", 43), ("{", "RS", 11), ("walkIdentifier", "RSN", 39), ("Expression", "RSN", 12), ("Concatenation", "RSN", 30), ("RepetitionOption", "RSN", 14), ("Name", "RSN", 42)],
+       ["ReadaheadTable", 25, ("Primary", "RSN", 5), ("walkString", "RSN", 39), ("Byte", "RSN", 7), ("walkSymbol", "RSN", 9), ("walkInteger", "RSN", 43), ("SemanticAction", "RSN", 48), ("(", "RS", 10), ("walkCharacter", "RSN", 43), ("{", "RS", 11), ("walkIdentifier", "RSN", 39), ("Expression", "RSN", 12), ("RepetitionOption", "RSN", 25), ("Name", "RSN", 42), ("|", "L", 55), (")", "L", 55), ("}", "L", 55), ("=>", "L", 55), (";", "L", 55)],
+       ["ReadaheadTable", 26, ("Attribute", "RSN", 26), ("keep", "RSN", 49), ("noNode", "RSN", 49), ("noStack", "RSN", 49), ("]", "RS", 56), ("read", "RSN", 49), ("look", "RSN", 49), ("stack", "RSN", 49), ("node", "RSN", 49), ("noKeep", "RSN", 49)],
+       ["ReadaheadTable", 27, ("walkInteger", "RSN", 67)],
+       ["ReadaheadTable", 28, ("walkInteger", "RSN", 59)],
+       ["ReadaheadTable", 29, ("walkString", "RSN", 39), ("walkSymbol", "RSN", 50), ("SemanticActionParameter", "RSN", 29), ("Byte", "RSN", 50), ("]", "RS", 62), ("Name", "RSN", 50), ("walkIdentifier", "RSN", 39), ("walkCharacter", "RSN", 43), ("walkInteger", "RSN", 43)],
+       ["ReadaheadTable", 30, ("|", "RS", 24), (")", "L", 66), ("}", "L", 66), ("=>", "L", 66), (";", "L", 66)],
+       ["ReadbackTable", 31, (("GrammarType", 2), "RSN", 85), ((";", 18), "RS", 68)],
+       ["ReadbackTable", 32, (("RepetitionOption", 25), "RSN", 32), (("RepetitionOption", 14), "RSN", 92)],
+       ["ReadbackTable", 33, (("[", 15), "RS", 70), (("Attribute", 26), "RSN", 33)],
+       ["ReadbackTable", 34, (("+", 28), "RS", 95), (("=>", 16), "L", 95)],
+       ["ReadbackTable", 35, (("[", 19), "RS", 47), (("SemanticActionParameter", 29), "RSN", 35)],
+       ["ReadbackTable", 36, (("Concatenation", 30), "RSN", 69), (("Concatenation", 13), "RSN", 101)],
+       ["ReadbackTable", 37, (("GrammarType", 2), "RSN", 85), ((";", 18), "RS", 68)],
+       ["ShiftbackTable", 38, 1, 79],
+       ["ShiftbackTable", 39, 1, 75],
+       ["ShiftbackTable", 40, 1, 71],
+       ["ShiftbackTable", 41, 1, 83],
+       ["ShiftbackTable", 42, 1, 80],
        ["ShiftbackTable", 43, 1, 82],
-       ["ShiftbackTable", 44, 1, 84],
-       ["ShiftbackTable", 45, 1, 76],
-       ["ShiftbackTable", 46, 1, 83],
-       ["ShiftbackTable", 47, 1, 74],
+       ["ShiftbackTable", 44, 1, 74],
+       ["ShiftbackTable", 45, 1, 81],
+       ["ShiftbackTable", 46, 1, 72],
+       ["ShiftbackTable", 47, 1, 87],
        ["ShiftbackTable", 48, 1, 88],
-       ["ShiftbackTable", 49, 1, 89],
-       ["ShiftbackTable", 50, 2, 85],
-       ["ShiftbackTable", 51, 1, 79],
-       ["ShiftbackTable", 52, 1, 78],
-       ["ShiftbackTable", 53, 3, 82],
-       ["ShiftbackTable", 54, 1, 90],
-       ["ShiftbackTable", 55, 1, 33],
-       ["ShiftbackTable", 56, 1, 92],
-       ["ShiftbackTable", 57, 2, 93],
-       ["ShiftbackTable", 58, 2, 94],
-       ["ShiftbackTable", 59, 2, 95],
-       ["ShiftbackTable", 60, 1, 34],
-       ["ShiftbackTable", 61, 1, 35],
-       ["ShiftbackTable", 62, 3, 96],
+       ["ShiftbackTable", 49, 1, 77],
+       ["ShiftbackTable", 50, 1, 76],
+       ["ShiftbackTable", 51, 3, 80],
+       ["ShiftbackTable", 52, 2, 89],
+       ["ShiftbackTable", 53, 2, 90],
+       ["ShiftbackTable", 54, 2, 91],
+       ["ShiftbackTable", 55, 1, 32],
+       ["ShiftbackTable", 56, 1, 33],
+       ["ShiftbackTable", 57, 1, 94],
+       ["ShiftbackTable", 58, 3, 92],
+       ["ShiftbackTable", 59, 1, 34],
+       ["ShiftbackTable", 60, 1, 96],
+       ["ShiftbackTable", 61, 3, 97],
+       ["ShiftbackTable", 62, 1, 35],
        ["ShiftbackTable", 63, 3, 98],
-       ["ShiftbackTable", 64, 1, 36],
-       ["ShiftbackTable", 65, 3, 99],
-       ["ShiftbackTable", 66, 2, 100],
-       ["ShiftbackTable", 67, 3, 101],
-       ["ShiftbackTable", 68, 3, 102],
-       ["ShiftbackTable", 69, 2, 37],
-       ["ShiftbackTable", 70, 3, 38],
-       ["ShiftbackTable", 71, 1, 37],
-       ["ShiftbackTable", 72, 1, 97],
-       ["ReduceTable", 73, "Expression", (4, "RSN", 13), (10, "RSN", 13), (11, "RSN", 13), (15, "RSN", 13), (25, "RSN", 67), (26, "RSN", 68), (27, "RSN", 13), (28, "RSN", 13)],
-       ["ReduceTable", 74, "Concatenation", (4, "RSN", 14), (10, "RSN", 14), (11, "RSN", 14), (27, "RSN", 31)],
-       ["ReduceTable", 75, "ListOfFiniteStateMachines", (1, "RSN", 106)],
-       ["ReduceTable", 76, "RepetitionOption", (4, "RSN", 15), (10, "RSN", 15), (11, "RSN", 15), (15, "RSN", 28), (27, "RSN", 15), (28, "RSN", 28)],
-       ["ReduceTable", 77, "Name", (2, "RSN", 3), (4, "RSN", 43), (10, "RSN", 43), (11, "RSN", 43), (12, "RSN", 54), (15, "RSN", 43), (17, "RSN", 54), (19, "RSN", 3), (20, "RSN", 52), (25, "RSN", 43), (26, "RSN", 43), (27, "RSN", 43), (28, "RSN", 43), (30, "RSN", 52)],
-       ["ReduceTable", 78, "SemanticActionParameter", (20, "RSN", 30), (30, "RSN", 30)],
-       ["ReduceTable", 79, "Attribute", (16, "RSN", 29), (29, "RSN", 29)],
-       ["ReduceTable", 80, "TreeBuildingOptions", (12, "RSN", 50), (17, "RSN", 62)],
-       ["ReduceTable", 81, "GrammarType", (1, "RSN", 2)],
-       ["ReduceTable", 82, "Primary", (4, "RSN", 5), (10, "RSN", 5), (11, "RSN", 5), (15, "RSN", 5), (25, "RSN", 5), (26, "RSN", 5), (27, "RSN", 5), (28, "RSN", 5)],
-       ["ReduceTable", 83, "Alternation", (4, "RSN", 6), (10, "RSN", 21), (11, "RSN", 22)],
-       ["ReduceTable", 84, "Byte", (4, "RSN", 7), (10, "RSN", 7), (11, "RSN", 7), (15, "RSN", 7), (18, "RSN", 63), (20, "RSN", 52), (25, "RSN", 7), (26, "RSN", 7), (27, "RSN", 7), (28, "RSN", 7), (30, "RSN", 52)],
-       ["ReduceTable", 85, "FiniteStateMachine", (4, "RSN", 8)],
-       ["ReduceTable", 86, "SemanticAction", (4, "RSN", 49), (10, "RSN", 49), (11, "RSN", 49), (12, "RSN", 56), (15, "RSN", 49), (17, "RSN", 56), (25, "RSN", 49), (26, "RSN", 49), (27, "RSN", 49), (28, "RSN", 49)],
-       ["SemanticTable", 87, "buildTree", ["walkList"], 75],
-       ["SemanticTable", 88, "buildTree", ["walkSemanticAction"], 86],
-       ["SemanticTable", 89, "buildTree", ["walkNonTreeBuildingSemanticAction"], 73],
-       ["SemanticTable", 90, "buildTree", ["walkbuildTreeOrTokenFromName"], 80],
-       ["SemanticTable", 91, "buildTree", ["walkbuildTreeFromLeftIndex"], 80],
-       ["SemanticTable", 92, "buildTree", ["walkTreeBuildingSemanticAction"], 80],
-       ["SemanticTable", 93, "buildTree", ["walkStar"], 76],
-       ["SemanticTable", 94, "buildTree", ["walkQuestionMark"], 76],
-       ["SemanticTable", 95, "buildTree", ["walkPlus"], 76],
-       ["SemanticTable", 96, "buildTree", ["walkConcatenation"], 74],
-       ["SemanticTable", 97, "buildTree", ["walkAttributes"], 73],
-       ["SemanticTable", 98, "buildTree", ["walkDotDot"], 82],
-       ["SemanticTable", 99, "buildTree", ["walkLook"], 82],
-       ["SemanticTable", 100, "buildTree", ["walkbuildTreeFromRightIndex"], 80],
-       ["SemanticTable", 101, "buildTree", ["walkAnd"], 76],
-       ["SemanticTable", 102, "buildTree", ["walkMinus"], 76],
-       ["SemanticTable", 103, "buildTree", ["walkOr"], 83],
-       ["SemanticTable", 104, "processTypeNow", ["parser"], 39],
-       ["SemanticTable", 105, "processTypeNow", ["scanner"], 39],
-       ["AcceptTable", 106]]
-
-
+       ["ShiftbackTable", 64, 3, 99],
+       ["ShiftbackTable", 65, 3, 100],
+       ["ShiftbackTable", 66, 2, 36],
+       ["ShiftbackTable", 67, 2, 102],
+       ["ShiftbackTable", 68, 3, 37],
+       ["ShiftbackTable", 69, 1, 36],
+       ["ShiftbackTable", 70, 1, 93],
+       ["ReduceTable", 71, "Expression", (4, "RSN", 12), (10, "RSN", 12), (11, "RSN", 12), (14, "RSN", 12), (22, "RSN", 64), (23, "RSN", 65), (24, "RSN", 12), (25, "RSN", 12)],
+       ["ReduceTable", 72, "Concatenation", (4, "RSN", 13), (10, "RSN", 13), (11, "RSN", 13), (24, "RSN", 30)],
+       ["ReduceTable", 73, "ListOfFiniteStateMachines", (1, "RSN", 105)],
+       ["ReduceTable", 74, "RepetitionOption", (4, "RSN", 14), (10, "RSN", 14), (11, "RSN", 14), (14, "RSN", 25), (24, "RSN", 14), (25, "RSN", 25)],
+       ["ReduceTable", 75, "Name", (2, "RSN", 3), (4, "RSN", 42), (10, "RSN", 42), (11, "RSN", 42), (14, "RSN", 42), (16, "RSN", 57), (18, "RSN", 3), (19, "RSN", 50), (22, "RSN", 42), (23, "RSN", 42), (24, "RSN", 42), (25, "RSN", 42), (29, "RSN", 50)],
+       ["ReduceTable", 76, "SemanticActionParameter", (19, "RSN", 29), (29, "RSN", 29)],
+       ["ReduceTable", 77, "Attribute", (15, "RSN", 26), (26, "RSN", 26)],
+       ["ReduceTable", 78, "TreeBuildingOptions", (16, "RSN", 58)],
+       ["ReduceTable", 79, "GrammarType", (1, "RSN", 2)],
+       ["ReduceTable", 80, "Primary", (4, "RSN", 5), (10, "RSN", 5), (11, "RSN", 5), (14, "RSN", 5), (22, "RSN", 5), (23, "RSN", 5), (24, "RSN", 5), (25, "RSN", 5)],
+       ["ReduceTable", 81, "Alternation", (4, "RSN", 6), (10, "RSN", 20), (11, "RSN", 21)],
+       ["ReduceTable", 82, "Byte", (4, "RSN", 7), (10, "RSN", 7), (11, "RSN", 7), (14, "RSN", 7), (17, "RSN", 61), (19, "RSN", 50), (22, "RSN", 7), (23, "RSN", 7), (24, "RSN", 7), (25, "RSN", 7), (29, "RSN", 50)],
+       ["ReduceTable", 83, "FiniteStateMachine", (4, "RSN", 8)],
+       ["ReduceTable", 84, "SemanticAction", (4, "RSN", 48), (10, "RSN", 48), (11, "RSN", 48), (14, "RSN", 48), (16, "RSN", 60), (22, "RSN", 48), (23, "RSN", 48), (24, "RSN", 48), (25, "RSN", 48)],
+       ["SemanticTable", 85, "buildTree", ["walkList"], 73],
+       ["SemanticTable", 86, "buildTree", ["walkEpsilon"], 81],
+       ["SemanticTable", 87, "buildTree", ["walkSemanticAction"], 84],
+       ["SemanticTable", 88, "buildTree", ["walkNonTreeBuildingSemanticAction"], 71],
+       ["SemanticTable", 89, "buildTree", ["walkStar"], 74],
+       ["SemanticTable", 90, "buildTree", ["walkQuestionMark"], 74],
+       ["SemanticTable", 91, "buildTree", ["walkPlus"], 74],
+       ["SemanticTable", 92, "buildTree", ["walkConcatenation"], 72],
+       ["SemanticTable", 93, "buildTree", ["walkAttributes"], 71],
+       ["SemanticTable", 94, "buildTree", ["walkBuildTreeOrTokenFromName"], 78],
+       ["SemanticTable", 95, "buildTree", ["walkBuildTreeFromLeftIndex"], 78],
+       ["SemanticTable", 96, "buildTree", ["walkTreeBuildingSemanticAction"], 78],
+       ["SemanticTable", 97, "buildTree", ["walkDotDot"], 80],
+       ["SemanticTable", 98, "buildTree", ["walkLook"], 80],
+       ["SemanticTable", 99, "buildTree", ["walkAnd"], 74],
+       ["SemanticTable", 100, "buildTree", ["walkMinus"], 74],
+       ["SemanticTable", 101, "buildTree", ["walkOr"], 81],
+       ["SemanticTable", 102, "buildTree", ["walkBuildTreeFromRightIndex"], 78],
+       ["SemanticTable", 103, "processTypeNow", ["parser"], 38],
+       ["SemanticTable", 104, "processTypeNow", ["scanner"], 38],
+       ["AcceptTable", 105]]
 }

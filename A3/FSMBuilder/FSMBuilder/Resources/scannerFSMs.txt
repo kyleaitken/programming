@@ -1,42 +1,44 @@
 scanner
-    //NOTE: basic transitions are either JUST integers or a MIXTURE of character or integers.
-    //With the first approach everything (including 256 for endOfFileCharacter) is internally
-    //an integer but WHEN YOU PRINT IT, you print anything printable as a character and anything
-    //unprintable as an integer (e.g., tab is unprintable).
-	//The following Smalltalk code (easily convertible to Swift) can be placed in class Grammar
+    //NOTE: All transitions 256 should be converted to integers...
 
-    //Consider
-    //isPrintableAsCharacter: integer
-    //  | printable |
-    //  (integer < 0 | integer >= 255) ifTrue: [^false].
-    //  The following string ends with an underscore, a double quote, and a single quote.
-    //	printable := 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\*~=@%&?|<>_"'''.
-    //  ^printable indexOf: integer asCharacter > 0
+    //For scanners, the following does not mean build an FSM with a string transition for "0123", it
+    //means build a 2 state FSM with 4 transitions: one for $0, one for $1, one for $2, and one
+    //for $3.
+    digit = "0123"; //There should be 4 transitions. The attribute should be "RK". (note: character $0 is ascii 48)
+    fsm2 = $0 .. $3; //4 transitions. Just a new notation equivalent to fsm1.
+    fsm3 = 0 .. 3; //4 transition. The same new notation but with the transitions given as integers.
+       //They are clearly unprintabble characters.
+    fsm4 = 0 | 1 | 2 | 3; //Uses standard or routine. Note: integer inputs means they are unprintable...
+    fsm5 = $0 | $1 | $2 | $3; //Like above but these are printable once you convert to integers, it will have 
+       //ascii value 48 for $0, 49 for $1, ....
 
+    tab = 9 [noKeep];
+    carriageReturn = 13 [noKeep];
+    lineFeed = 10 [noKeep];
+    formFeed = 12 [noKeep];
+    blank = 32 [noKeep];
+    lineEnd = carriageReturn | lineFeed  | formFeed;
+    space = blank | tab | lineEnd;
+    all = "0123abc;+-/" [read keep] | space | lineEnd; //The 5 non-printable characters should be "R"; others "RK".
+    endOfFileCharacter = 256; //Not a valid ascii character.
 
-    //Examples building an FSM with attributes (ask the grammar for the default attributes; see details
-    //in parserFSMd.txt; scanner defaults should be read, noStack, noNode, keep)
-    fsm1 = $+; //Should default to "RK"
-    fsm2 = $a [noKeep]; //Should have attribute "R"
-    fsm3 = {$a}; //Braces means LOOK. Should have attribute "L"
-    fsm4 = 256; //EndOfFileCharacter: Cannot be converted to a character.
-    fsm5 = 32 [noKeep]; //Space character: The attribute should be "R". 
-    fsm6 = 10 [noKeep]; //LineEnd character: This is not a printable character
+    //The following is an example scanner production... The "+" is new but the "=> Number" is stuff your last assignment could already handle.
+    number = digit+ => Number; //This should recognize 1 or more digits followed by a walk routine for semantic transition 
+        //#buildToken: with parameters "Number", a string, NOT a token) in Smalltalk. In Swift, the : is missing from #buildToken:.
+	// This last one should work from your old code.
+			
+    //NOTE: The - operation is difficult... But you already implemented it in parserFSMs.
+    nonDigit = {all - digit}; //The attributes should be "L".
 
-    //The following are ROOT building semantic actions because
-    //they are preceded by "=>". That information is stored in a LABEL object .
-    //Also, note that parameters should be characters, integers, strings, or symbols depending
-    //on whether their labels are #walkCharacter: #walkInteger:, #walkString:, or walkSymbol.
-    //Swift doesn't have symbols so strings in their place.
+    //The following describes a comment in the C++ style (like this comment).
+    //It's pretty complicated as an FSM... Look at it when you print it.
+    comment =
+        ($/ [noKeep] {all - $/} #syntaxError: ["// is a comment, / alone is not valid"])
+      | ($/ [noKeep] $/ [noKeep]
+                (all [noKeep] - lineEnd [noKeep])*
+            (
+                lineEnd [noKeep] |
+                {endOfFileCharacter}
+            )
+        );
 
-    fsm7 = => Number; //This should create semantic transition #buildToken: with parameters "Number", a string, NOT a token).
-    fsm8 = => "bird";   //This one should create semantic transition #buildToken: with parameters containing "bird" (NOT A TOKEN).
-    fsm9 = => #buildBirdRoutine:with: [1 2];  //This one should create semantic transition #buildBirdRoutine:with: with parameters containing integers 1 and 2.
-    fsm10 = => #between:and: [10 20];  //This one should create semantic transition #between:and: with parameters containing integers 10 and 20.
-    fsm11 = => #testing;  //This one should create semantic transition #testing with parameters consisting of an empty collection.
-
-    //The following are NON-ROOT building semantic actions, because they are NOT preceded by "=>".
-    fsm12 = #normalIncludes:and: [30 40];  //This one should create semantic transition #normalIncludes:and: with integer parameters 30 and 40.
-    fsm13 = #normalIncludes: [50];  //This one should create semantic transition #normalIncludes: with parameters consisting of integer 50.
-    fsm14 = #normalAction;  //This one should create semantic transition #normalAction with parameters consisting of an empty collection.
-		

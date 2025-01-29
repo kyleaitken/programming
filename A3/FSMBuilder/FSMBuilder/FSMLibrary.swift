@@ -19,10 +19,72 @@ public class FiniteStateMachine {
             }
         }
     }
+    
+    static func empty() -> FiniteStateMachine {
+        let fsm = FiniteStateMachine()
+        let fsmState = FiniteStateMachineState()
+        fsmState.isInitial = true
+        fsmState.isFinal = true
+        fsm.states.append(fsmState)
+        return fsm
+    }
+    
+    func or(otherFSM: FiniteStateMachine) -> FiniteStateMachine {
+        self.addAll(fsm: otherFSM)
+        self.renumber()
+        return self
+    }
+    
+    func addAll(fsm: FiniteStateMachine) {
+        // Copy all the states and append them to the current FSM's states
+        let fsmCopy = FiniteStateMachine.copyFSM(fsm)
+        for state in fsmCopy.states {
+            self.states.append(state)
+        }
+    }
+    
+    func plus() -> FiniteStateMachine {
+        let initialTransitions = self.getInitialTransitions()
+        
+        // Call finalStatesDo and pass the initial transitions as an argument
+        self.finalStatesDo(closure: addAllIfAbsent, initialTransitions: initialTransitions)
+        
+        return self
+    }
+    
+    func addAllIfAbsent(finalState: FiniteStateMachineState, initialTransitions: [Transition]) {
+        // Add the initial transitions to the final state if not already present
+        for transition in initialTransitions {
+            if !finalState.transitions.contains(where: { $0 == (transition) }) {
+                finalState.transitions.append(transition)
+            }
+        }
+    }
+    
+    func getInitialTransitions() -> [Transition] {
+        var transitions: [Transition] = []
+        for state in self.states {
+            if state.isInitial {
+                transitions.append(contentsOf: state.transitions)
+            }
+        }
+        return transitions
+    }
+    
+    // Add all the transitions from final states if they are not already present
+    func finalStatesDo(closure: (FiniteStateMachineState, [Transition]) -> Void, initialTransitions: [Transition]) {
+        for state in self.states {
+            if state.isFinal {
+                // Instead of gathering the initial transitions here, just call the closure with what was passed
+                closure(state, initialTransitions)
+            }
+        }
+//        self.states.filter { $0.isFinal }.forEach { closure($0, initialTransitions) }
+    }
 
     func renumber () {
        for (index, state) in states.enumerated() {
-           state.stateNumber = index // Maybe what this should do?
+           state.stateNumber = index
        }
     }
     
@@ -32,7 +94,7 @@ public class FiniteStateMachine {
         }
         print("End")
     }
-    
+        
     static func forCharacter(_ symbol: String) -> FiniteStateMachine {
         let transition = Transition()
         if ((Grammar.activeGrammar?.isScanner()) == true) {
@@ -46,6 +108,18 @@ public class FiniteStateMachine {
         transition.label.attributes = Grammar.defaultsFor(symbol)
         
         return fromTransition(transition)
+    }
+    
+    static func orAll(FSMCollection: [FiniteStateMachine]) -> FiniteStateMachine {
+        guard !FSMCollection.isEmpty else {
+               fatalError("Can't combine an empty collection of FSMs")
+       }
+        let resultFSM = FSMCollection.first!
+        for fsm in FSMCollection.dropFirst() {
+            resultFSM.addAll(fsm: fsm)
+        }
+        resultFSM.renumber()
+        return resultFSM
     }
     
     static func forString(_ symbol: String) -> FiniteStateMachine {
@@ -80,34 +154,39 @@ public class FiniteStateMachine {
     
     static func forIdentifier(_ fsm: FiniteStateMachine) -> FiniteStateMachine {
         // make a copy
+        return copyFSM(fsm)
+    }
+    
+    static func copyFSM(_ fsm: FiniteStateMachine) -> FiniteStateMachine {
+        // make a copy
         let newFSM = FiniteStateMachine ()
         
-        // make new states and add to the state dict
-        var stateMap: [Int: FiniteStateMachineState] = [:]
+        // make new states for each existing state and add to the state dict
+        var copiedStates: [Int: FiniteStateMachineState] = [:]
         for state in fsm.states {
             let newFSMState = FiniteStateMachineState ()
+            newFSMState.stateNumber = state.stateNumber
             newFSMState.isFinal = state.isFinal
             newFSMState.isInitial = state.isInitial
-            newFSMState.stateNumber = state.stateNumber
-            stateMap[state.stateNumber] = newFSMState
+            copiedStates[state.stateNumber] = newFSMState
         }
-        
+                
         // copy transitions and add to new states
         for state in fsm.states {
-            let newState = stateMap[state.stateNumber]!
+            let copiedState = copiedStates[state.stateNumber]!
             for transition in state.transitions {
                 let newTransition = transition.copy()
                 
                 // Update the 'goto' state to refer to the new state
                 if let gotoState = transition.goto {
-                    newTransition.goto = stateMap[gotoState.stateNumber]
+                    newTransition.goto = copiedStates[gotoState.stateNumber]
                 }
-                newState.transitions.append(newTransition)
+                copiedState.transitions.append(newTransition)
             }
         }
         
         // Sort states by their stateNumber before adding them to newFSM
-        let sortedStates = stateMap.values.sorted { $0.stateNumber < $1.stateNumber }
+        let sortedStates = copiedStates.values.sorted { $0.stateNumber < $1.stateNumber }
         newFSM.states.append(contentsOf: sortedStates)
         
         return newFSM
@@ -160,6 +239,19 @@ public class FiniteStateMachineState {
             transition.printOn()
         }
     }
+    
+    func copy() -> FiniteStateMachineState {
+        let newFsmState = FiniteStateMachineState()
+        newFsmState.stateNumber = self.stateNumber
+        newFsmState.isInitial = self.isInitial
+        newFsmState.isFinal = self.isFinal
+        
+        for transition in self.transitions {
+            newFsmState.transitions.append(transition.copy())
+        }
+        
+        return newFsmState
+    }
 }
 
 public class Transition {
@@ -183,7 +275,21 @@ public class Transition {
     func copy() -> Transition {
         let newTransition = Transition()
         newTransition.label = label.copy()
+        newTransition.goto = self.goto
         return newTransition
+    }
+    
+    func getLabel() -> Label {
+        return self.label
+    }
+    
+    func setLabel(label: Label) {
+        self.label = label
+    }
+    
+    // Overriding == operator for Label
+    public static func ==(lhs: Transition, rhs: Transition) -> Bool {
+        return lhs.label == rhs.label && lhs.goto === rhs.goto
     }
 }
 
@@ -233,6 +339,10 @@ public class Label {
         newLabel.isRootBuilding = self.isRootBuilding
         return newLabel
     }
+    
+    public static func ==(lhs: Label, rhs: Label) -> Bool {
+        return lhs.name == rhs.name && lhs.attributes == rhs.attributes && lhs.action == rhs.action
+    }
 }
 
 
@@ -259,7 +369,7 @@ public class AttributeList {
 
     static func fromString (_ string: String) -> AttributeList {
 	//Convert from the description notation below to an attribute list.
-        var attributeList = AttributeList ();
+        let attributeList = AttributeList ();
         attributeList.isRead = string.contains("R") //"R" versus "L"
         attributeList.isStack = string.contains("S") //"S" versus no "S"
         attributeList.isKeep = string.contains("K") //"K" versus no "K"
@@ -287,5 +397,9 @@ public class AttributeList {
         newAttributeList.isKeep = self.isKeep
         newAttributeList.isNode = self.isNode
         return newAttributeList
+    }
+    
+    public static func==(lhs: AttributeList, rhs: AttributeList) -> Bool {
+        return lhs.isRead == rhs.isRead && lhs.isKeep == rhs.isKeep && lhs.isNode == rhs.isNode && lhs.isStack == rhs.isStack
     }
 }

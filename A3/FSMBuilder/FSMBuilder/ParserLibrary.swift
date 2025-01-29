@@ -736,11 +736,14 @@ public final class Parser: Transducer {
         return action == "buildTree" || action == "buildTreeFromIndex"
     }
     public override func performAction(_ action: String, _ parameters: [Any]) -> Void {
+        print("performAction")
         switch (action) {
         case "buildTree":
+            print("buildTree")
             let label = parameters [0] as! String
             buildTree (rootLabel: label)
         case "buildTreeFromIndex":
+            print("buildTreeFromIndex")
             let index = parameters [0] as! Int
             buildTreeFromIndex (index)
         default:
@@ -815,19 +818,55 @@ public final class Parser: Transducer {
     }
         
     //Semantic actions..
+//    func buildTree(rootLabel: String) {
+//        //Pick up the children from the tree stack between left and right inclusively
+//        //(provided they are not nil) and build a tree with the given label.
+//        //Store it in instance newTree so a reduce table can use it
+//            
+////        let range = (left <= right) ? left...right : []
+////        let children = treeStack[range].compactMap{ $0 } // discard nils
+////        self.newTree = Tree(label: rootLabel, children: children)
+////        let range = (left <= right) ? left...right : left...left
+//        
+//        let range = left...right
+//        let children = treeStack[range].compactMap{ $0 } // Picks up each non-nil object
+//        self.newTree = Tree(label: rootLabel, children: children)
+//
+//    }
+    
     func buildTree(rootLabel: String) {
         //Pick up the children from the tree stack between left and right inclusively
-        //(provided they are not nil) and build a tree with the given label.
+        //(provided they are not nil) and build a tree with the given label
         //Store it in instance newTree so a reduce table can use it
             
-//        let range = (left <= right) ? left...right : []
-//        let children = treeStack[range].compactMap{ $0 } // discard nils
-//        self.newTree = Tree(label: rootLabel, children: children)
-        
-        let range = left...right
-        let children = treeStack[range].compactMap{ $0 } // Picks up each non-nil object
+        let children = left > right ? [] : treeStack[left...right].compactMap{ $0 } // Picks up each non-nil object
         self.newTree = Tree(label: rootLabel, children: children)
     }
+    
+//    func buildTree(rootLabel: String) {
+//        // Make sure left <= right, and handle the case where it's not
+//        let left = min(self.left, self.right)
+//        let right = max(self.left, self.right)
+//        
+//        // Now that we know left <= right, we can safely create the range
+//        let safeRange = left...right
+//        
+//        // Ensure safeRange is within bounds of treeStack
+//        let lowerBound = max(0, left)
+//        let upperBound = min(treeStack.count - 1, right)
+//        
+//        // If the range is invalid, return early (you can handle this differently)
+//        if lowerBound > upperBound {
+//            print("Invalid range: \(lowerBound)...\(upperBound), returning empty children.")
+//            self.newTree = Tree(label: rootLabel, children: [])
+//            return
+//        }
+//        
+//        // Safely access treeStack with the valid range
+//        let children = treeStack[lowerBound...upperBound].compactMap { $0 } // Discard nils
+//        
+//        self.newTree = Tree(label: rootLabel, children: children)
+//    }
         
     func buildTreeFromIndex(_ index: Int) {
         //Index is positive 1,2,3,... => label is in the tree relative to the left end; i.e., to the right of left end.

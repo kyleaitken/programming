@@ -1,51 +1,63 @@
 
 parser
-   //Before you go too far, you will provide a routine in the grammar object which
-   //can provide the default attributes given whether you are processing
-   //a parser grammar or a scanner grammar.
-   //For a parser grammar, terminals will have defaults [read, stack, noNode, noKeep] and nonterminals [read, stack, node, noKeep].
-   //For now, hack the grammar so it will assume a nonterminal is anything that starts as an uppercase.
-   //Have it print attributes as "L" if its look (with none of the other attributes showing up); otherwise
-   //use R if its read, S if its stack (or nothing), N if its node (or nothing), K if its keep or nothing.
+   //This is a test of parser based FSMs. 
 
-   fsm1 = $a; //The attribute should be print at "RS".
-   fsm2 = $a [read read read read]; //The attribute should still be "RS". Superfluous attributes don't matter.
-   fsm3 = $a [read stack node keep]; //The attribute should be "RSNK". The keep attributes is superfluous for a parser.
-   fsm4 = $a [read stack node noKeep]; //The attribute should be "RSN".
-   fsm5 = $a [read stack node look]; //The attribute should be "L".
-   fsm6 = $a [noStack keep]; //The attribute should be "RK".
-   fsm7 = $a [node]; //The attribute should be "RSN".
-   fsm8 = $A; //Because of the hack above, the attribute should be "RSN"
+   //These are the easy ones first...
+   fsm1 = ; //The empty string
+   fsm2 = $a; //The attribute should be "RS" because its a terminal.
+   fsm3 = "hi"; //This should result in an FSM recognizing the string with attribues "RS" (like the above fsm).
+      //Note: If this were in a scanner, it would be an FSM recognizing $h and $i.
+   fsm4 = $A; //The attribute should be "RSN" because its a nonterminal. The grammar object is fudged to accept this as a parser nonterminal default.
+   fsm5 = $a?; //0 or 1 a
+   fsm6 = $a+; //1 or more a's
+   fsm7 = $a*; //0 or more a's
+   fsm8 = $a | $b | $c | $d; //a or b or c or d
 
-   //The next 3 fsms refer to FSMs on the right... Do not build transitions called fsm1 or fsm9.
-   fsm9 = fsm1 [noStack keep]; 
-        //This will need the implementation of a copy operation that can duplicate the FSM.
-	//This means you can recognize that fsm1 is actually an FSM name (walkList: knows, look it up).
-        //The attribute for the duplicate will be "RK" for fsm9 but the attribute for fsm1 should still be "RS". 
-	//You need to ensure fsm1 is unmodified by the construction of fsm9.
-	//One way of checking is to print fsm1 just before you return fsm9.
-   fsm10 = fsm9 [noKeep stack]; //The attribute for fsm10 should be "RS" but fsm9 should still be "RK".
-   fsm11 = {fsm9}; //Braces mean LOOK. The attribute should be "L" for fsm11; fsm9 should still be "RK".
+   //These are the medium-hard ones
+   fsm9 = $a $b $c $d; //a followed by b followed by c followed by d.
 
+   //If you implemented concatenation properly, you now get the chance
+   //to test it with 4 fsms to concatenate... We specifically mentioned
+   //these in the notes... They should all be slightly different.
+   fsm10a = a+ b+;
+   fsm10b = a+ b*;
+   fsm10c = a* b+;
+   fsm10d = a* b*;
 
-   //The following FSMs should all be ROOT BUILDING semantic actions; i.e. TREE BUILDING
-   //because of the existance of "=>" in front of it... A semantic action is a type of LABEL.
-   //Also, note that ACTION parameters should be characters, integers, or strings depending
-   //on whether their labels are #walkCharacter: #walkInteger:, or #walkString:.
+   //The next series of 3 FSMs is testing the notion of an FSM
+   //playing the role of a macro...
 
-   fsm12 = => "list";   //This one should create semantic transition #buildTree: with parameters containing STRING "list" (NOT A TOKEN).
-   fsm13 = => + 1;   //This one should create semantic transition #buildTreeFromIndex: with parameters containing integer 1.
-   fsm14 = => 1;   //This one should create semantic transition #buildTreeFromIndex: with parameters containing integer 1 TOO.
-   fsm15 = => -1;   //This one should create semantic transition #buildTreeFromIndex: with parameters containing integer -1.
-                    //Note that the tree does not contain -1 in it. So you have to explicitly negate it.
-   fsm16 = => #buildRoutine:with: [1 2];  //This one should create semantic transition #buildRoutine:with: with parameters containing integers 1 and 2.
-   fsm17 = => #between:and: [10 20];  //This one should create semantic transition #between:and: with parameters containing integers 10 and 20.
-   fsm18 = => #testing;  //This one should create semantic transition #testing with parameters consisting of an empty collection.
-   fsm19 = => #myBuildTree ["list"];  //This one should look just like fsm12 except the name of the semantic action is 
-                                      //myBuildTree instead of buildTree:.
+   //DANGER DANGER DANGER: The following fsm9 uses the pre-built fsm called fsm2
+   //that was recorded in the finite state machine builder up above...
+   //YOU SHOULD NOT HAVE A TRANSITION CALLED fsm2. You should have made a
+   //copy of fsm2 and returned it. But just before you return the copy,
+   //print fsm2 to prove that it has NOT been modified.
 
-   //The following FSMs should all be NON-ROOT BUILDING semantic actions because "=>" is missing
-   fsm20 = #normal1:and: [10 20];  //Like the above but NOT tree building...
-   fsm21 = #normal2;  //Like the above but NOT tree building...
-   fsm22 = #normal3: ["list"];  //Like the above but NOT tree building...
+   fsm11 = fsm2 [noStack keep]; 
+	//The attribute for fsm2 should still be "RS" but the attribute
+        //for fsm11 should be "RK". You'll need to have re-printed fsm2 verify this.
+
+   fsm12 = {fsm4}; //Braces mean LOOK. Note that fsm4 had the read attribute but fsm12 has the look attribute. Make sure fsm4 is still correct.
+   fsm13 = fsm4 fsm5+; //fsm13 will be a mess to look at but neither fsm4 nor fsm5 should be buggered up...
+
+   //This is the end of macro testing; i.e., tests where the fsms are used as transitions...
+
+   fsm14 = (a* | b*); //Make sure the FSM is correct... It might not look like you expected.
+   fsm15 = a* b; //Two simple tests
+   fsm16 = a b*; //of concatenate
+
+   complex1 = a? b* c+ d;
 	
+   //NOTE: You will need to implement reduce to eliminate useless states and transitions
+   //in addition to implementing - and & below	
+   fsm17 = (a*) - ((a a)*); //Should recognize only an odd number of a's (you took away the even ones).
+   fsm18 = (a*) & ((a a)*); //Should recognize only an even number of a's.
+
+   //The following illustrates why you need reduce to be use by operation -.
+   //FSM complex2 is not so complex after reduce runs...
+   complex2 = ((a a)* | b c | d) - (a* | b c | g); //Should recognize d. 
+        //Why does it recognize d?
+	//Take an even number of a's via (a a)* one the left but take away a* on the right. (so nothing left)
+	//Take "b c" on the left and take away "b c" on the right (so nothing left)
+	//Take "d" on the left - "g" on the right (so d alone since there was no g to take away).
+

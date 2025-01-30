@@ -78,15 +78,27 @@ public final class Grammar {
         }
     }
     
-    static func isPrintable (_ anInteger: Int) -> Bool {
-        //Grammar isPrintable (Int ("a"))
-        //Grammar isPrintable (10")
-        //Grammar isPrintable (256)|
-        if (anInteger < 0) || (anInteger >= 256) {return false}
-        let printables = //Note: contains one single quote (quoted twice) and one double quote (quoted once)..."
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\\*~=@%&?|<>'[]{}()^;#:.$_\" "
-        return printables.contains(Character(UnicodeScalar(anInteger)!))
+//    static func isPrintable (_ anInteger: Int) -> Bool {
+//        //Grammar isPrintable (Int ("a"))
+//        //Grammar isPrintable (10")
+//        //Grammar isPrintable (256)|
+//        if (anInteger < 0) || (anInteger >= 256) {return false}
+//        let printables = //Note: contains one single quote (quoted twice) and one double quote (quoted once)..."
+//        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\\*~=@%&?|<>'[]{}()^;#:.$_\" "
+//        return printables.contains(Character(UnicodeScalar(anInteger)!))
+//    }
+    
+    
+    static func isPrintable(_ value: Int) -> Bool {
+        // Printable ASCII characters range from 32 (space) to 126 (~)
+        // Grammar isPrintable (Int ("a")) //In ascii, "a" is 97.
+        // Grammar isPrintable (10")
+        // Grammar isPrintable (256)
+        // The actual conversion can be done as Character(UnicodeScalar(97)!
+        // but if you want a string, further say String (character).
+         return (32...126).contains(value)
     }
+    
     
     
 }

@@ -62,6 +62,10 @@ public final class FSMBuilder : Translator {
             return walkEpsilon (tree)
         case "walkQuestionMark":
             return walkQuestionMark (tree)
+        case "walkStar":
+            return walkStar (tree)
+        case "walkOr":
+            return walkOr (tree)
         default:
             error ("Attempt to perform unknown walkTree routine \(action)")
             return 0
@@ -190,6 +194,52 @@ public final class FSMBuilder : Translator {
         let child = tree.child(0)
         let fsm = walkTree(child) as? FiniteStateMachine
         return fsm?.or(otherFSM: FiniteStateMachine.empty()) as Any
+    }
+    
+    func walkStar (_ tree : VirtualTree) -> Any {
+        guard let child = extractFirstChild(tree) else {
+            print("No child found")
+            return 0
+        }
+        
+        if let fsm = walkTree(child) as? FiniteStateMachine {
+            return fsm.plus().or(otherFSM: FiniteStateMachine.empty())
+        } else {
+            print("walkTree did not return a FiniteStateMachine")
+            return 0
+        }
+    }
+    
+    func walkOr (_ tree : VirtualTree) -> Any {
+        // loop over children, which could be a list of trees or tokens
+        var fsmsToOr: [FiniteStateMachine] = []
+        
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        for child in tree.children {
+            print("walk look child  ", child)
+            guard let fsm = walkTree(child) as? FiniteStateMachine else {
+                print("ERROR: did not get an FSM back from walkTree")
+                return 0
+            }
+            print("fsm in walkOr: ", fsm.printOn())
+            fsmsToOr.append(fsm)
+        }
+        
+        let resultFSM = FiniteStateMachine.orAll(FSMCollection: fsmsToOr)
+        print("WalkOr result FSM: ", resultFSM.printOn())
+        return resultFSM
+    }
+    
+    func extractFirstChild (_ tree : VirtualTree) -> VirtualTree? {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return nil
+        }
+        return tree.child(0)
     }
     
     func walkString (_ tree : VirtualTree) -> Any {

@@ -48,7 +48,6 @@ public class FiniteStateMachine {
         
         // Call finalStatesDo and pass the initial transitions as an argument
         self.finalStatesDo(closure: addAllIfAbsent, initialTransitions: initialTransitions)
-        
         return self
     }
     

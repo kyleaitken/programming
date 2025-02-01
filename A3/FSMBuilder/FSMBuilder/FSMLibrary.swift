@@ -140,7 +140,6 @@ public class FiniteStateMachine {
         self.states.append(contentsOf: otherFSM.states)
         
         // reduce FSM1 (remove useless states)
-//        self.renumber()
         self.reduce()
         self.renumber()
         return self
@@ -256,24 +255,79 @@ public class FiniteStateMachine {
         return fromTransition(transition)
     }
     
+    static func forCharacters(_ start: String, _ end: String) -> FiniteStateMachine {
+        var transitions: [Transition] = []
+        
+        guard let startChar = start.first, let endChar = end.first else {
+            fatalError("Invalid characters for range: \(start) to \(end)")
+        }
+        
+        for charCode in startChar.asciiValue!...endChar.asciiValue! {
+            let symbol = String(charCode)
+            let transition = Transition()
+            transition.label = Label(symbol, Grammar.defaultsFor(symbol))
+            transitions.append(transition)
+        }
+        
+        return fromTransitions(transitions)
+    }
+    
+    static func forIntegers(_ start: String, _ end: String) -> FiniteStateMachine {
+        var transitions: [Transition] = []
+        
+        guard let startValue = Int(start), let endValue = Int(end) else {
+            print("Error: Invalid integer range \(start) to \(end)")
+            return FiniteStateMachine()  // Return an empty FSM in case of error
+        }
+        
+        for value in startValue...endValue {
+            var labelSymbol: String
+            
+            if Grammar.isPrintable(value) {
+                // If the value is printable, convert to the corresponding ASCII character
+                labelSymbol = String(Character(UnicodeScalar(value)!))
+            } else {
+                // Otherwise, use the integer value as the label
+                labelSymbol = "\(value)"
+            }
+
+            let transition = Transition()
+            transition.label = Label(labelSymbol, Grammar.defaultsFor(labelSymbol))
+            transitions.append(transition)
+        }
+        
+        return fromTransitions(transitions)
+    }
+    
     static func forString(_ symbol: String) -> FiniteStateMachine {
-        let transition = Transition ()
-        transition.label = Label(symbol, Grammar.defaultsFor(symbol))
-        return fromTransition(transition)
+        var transitions: [Transition] = []
+        if Grammar.activeGrammar?.isScanner() == true {
+            // make transitions for each char in the string
+            for char in symbol {
+                let transition = Transition()
+                transition.label = Label(String(char), Grammar.defaultsFor(String(char)))
+                transitions.append(transition)
+            }
+        } else {
+            let transition = Transition ()
+            transition.label = Label(symbol, Grammar.defaultsFor(symbol))
+            transitions.append(transition)
+        }
+        return fromTransitions(transitions)
     }
     
     static func forInteger(_ symbol: String) -> FiniteStateMachine {
-        let transition = Transition()
-        let intSymbol = Int(symbol)
+        let value = Int(symbol)
         var labelSymbol: String
         
-        if Grammar.isPrintable(intSymbol!) {
-            labelSymbol = String(Character(UnicodeScalar(intSymbol!)!))
+        if Grammar.isPrintable(value!) {
+            labelSymbol = String(Character(UnicodeScalar(value!)!))
         } else {
-            labelSymbol = symbol
+            labelSymbol = "\(value)"
         }
-        
-        transition.label = Label(labelSymbol, Grammar.defaultsFor(symbol))
+    
+        let transition = Transition()
+        transition.label = Label(labelSymbol, Grammar.defaultsFor(labelSymbol))
         return fromTransition(transition)
     }
     
@@ -338,6 +392,31 @@ public class FiniteStateMachine {
         // set the transition
         transition.goto = finalState
         initialState.transitions.append(transition)
+        
+        // Number the states
+        fsm.renumber()
+        
+        return fsm
+    }
+    
+    static func fromTransitions(_ transitions: [Transition]) -> FiniteStateMachine {
+        let fsm = FiniteStateMachine()
+        
+        // create initial state
+        let initialState = FiniteStateMachineState()
+        initialState.isInitial = true
+        fsm.states.append(initialState)
+        
+        // create final state
+        let finalState = FiniteStateMachineState ()
+        finalState.isFinal = true
+        fsm.states.append(finalState)
+        
+        // set the transition
+        for transition in transitions {
+            transition.goto = finalState
+            initialState.transitions.append(transition)
+        }
         
         // Number the states
         fsm.renumber()

@@ -1,6 +1,6 @@
 //
 //  ParserLibrary.swift
-//  SampleTranslator//
+//  Constructor
 //
 //  Created by Wilf Lalonde on 2022-12-19
 //  and Jeeheon Kim (for Wilf Lalonde) on 2022-1-10
@@ -10,7 +10,7 @@ import Foundation
 
 //debug, error, Error, MyError, TransducerError
 func debug (_ string: String) {
-    print ("debug: " + string)
+    //print ("debug: " + string)
 }
 func error (_ string: String) {
     print ("error: " + string)
@@ -54,10 +54,6 @@ public class Tree: VirtualTree {
     func addChild(aTree: VirtualTree) {
         children.append(aTree)
     }
-    
-    func child (_ index: Int) -> VirtualTree {
-        return children [index]
-    }
 
     public var description: String {
         return self.description (tabs: 0)
@@ -80,11 +76,10 @@ public class Tree: VirtualTree {
 public class Token: VirtualTree, Hashable, Equatable {
     var label: String
     var symbol: String
-    static let sharedEmpty = Token(label: "Unknown", symbol: "")
+    nonisolated(unsafe) static let sharedEmpty = Token(label: "Unknown", symbol: "")
 
     init(label: String, symbol: String) {
-      self.label = label
-      self.symbol = symbol
+      (self.label, self.symbol) = (label, symbol)
     }
 
     public static func == (token1: Token, token2: Token) -> Bool {
@@ -97,9 +92,8 @@ public class Token: VirtualTree, Hashable, Equatable {
     }
 
     public var description: String {
-        return "Token (label: \(label) symbol: \(symbol)"
+        return "Token (label: \(label) symbol: \(symbol))"
     }
-    
     public func description (tabs: Int ) -> String {
         var string: String = "\n"
         if tabs > 0 {
@@ -107,7 +101,7 @@ public class Token: VirtualTree, Hashable, Equatable {
                 string += "\t"
             }
         }
-        string += description + ")";
+        string += description;
         return string
     }
     
@@ -129,44 +123,24 @@ public class Token: VirtualTree, Hashable, Equatable {
 
 //=======================================================================================
 
-//PairConvertible, Table,
+//Allows converting Strings/Substring to ascii; i.e., print"Hello".asciiValues) // [72, 101, 108, 108, 111]
 extension StringProtocol {
     var asciiValues: [UInt8] { compactMap(\.asciiValue) }
 }
 
-// Making Pair a key to dictionary
-protocol PairConvertible {
-    associatedtype T
-    associatedtype U
-    init(_ pair: (T, U))
-}
-struct PairHashable<T, U>: Hashable, PairConvertible where T: Hashable, U: Hashable {
+//Allows local pairs as dictionary keys.
+struct Pair<T: Hashable, U: Hashable>: Hashable {
+    //Swift will automatically generates the hash(into:) method, which combines the hashes of first
+    //and second to produce a hash value for the Pair instance.
     let first: T
     let second: U
+    
     init(_ pair: (T, U)) {
-        self.first = pair.0
-        self.second = pair.1
-  }
-}
-extension Dictionary where Key: PairConvertible {
-    subscript (key: (Key.T, Key.U)) -> Value? {
-        get {
-            return self[Key(key)]
-        }
-        set {
-            self[Key(key)] = newValue
-        }
-    }
-    subscript (key0: Key.T, key1: Key.U) -> Value? {
-        get {
-            return self[Key((key0, key1))]
-        }
-        set {
-            self[Key((key0, key1))] = newValue
-        }
+        (first, second) = pair
     }
 }
 
+//All table types...
 enum TableType: String {
     case
     // Scanner tables
@@ -198,7 +172,7 @@ protocol TableWithTransitionsWithStringKey {
 }
 
 protocol TableWithTransitionsWithPairKey {
-    var transitions: [PairHashable<String, Int>: (String, Int)] { get set }
+    var transitions: [Pair<String, Int>: (String, Int)] { get set }
 }
 
 class TableFactory {
@@ -233,8 +207,8 @@ class ScannerReadaheadTable: Table, TableWithTransitionsWithIntKey {
     init() {}
     
     func run() throws -> Int? {
-        let transducer = self.transducer as! Scanner
-        let character = transducer.peekInput(); debug("\t peeked at `\(String (describing: character))`")
+        let scanner = self.transducer as! Scanner
+        let character = scanner.peekInput(); debug("\t peeked at `\(String (describing: character))`")
         let charAsInt =
             character == nil
             ? 256
@@ -246,9 +220,9 @@ class ScannerReadaheadTable: Table, TableWithTransitionsWithIntKey {
             let isKeep = attributes.contains("K")
             if !isRead { return goto }
             if isKeep {
-                transducer.keptCharacters += String(character!)
+                scanner.keptCharacters += String(character!)
             }
-            transducer.discardInput()
+            scanner.discardInput()
             return goto
         }
         throw TransducerError.lexicalError
@@ -256,7 +230,7 @@ class ScannerReadaheadTable: Table, TableWithTransitionsWithIntKey {
     
     func registerTable (rawTable: Array<Any>) {
         //Any is really [(Any, String, Int)]; i.e., an array of triples where
-        //a triple is an integer or character collection, attributes, and goto. The integers
+        //a triple is an integer collection or character collection, attributes, and goto. The integers
         //are unprintable characters or the end of file integer 256, the attributes may include R for read
         //(versus L for look) and K for keep. It's particularly important here to store the data so that
         //given a character or 256, you can perform a fast lookup to find the associated attributes
@@ -299,29 +273,17 @@ class SemanticTable: Table {
     }
     
     func run() throws -> Int? {
-        // Ask the scanner, parser, or transducer to execute the action.
-        
-        debug("\t table has to run \(action)(\(parameters))")
-        
-        if transducer is Scanner? {
-            if let scanner = transducer as? Scanner {
-                if scanner.canPerformAction(action) {
-                    scanner.performAction(action, parameters)
-                }
-            } else {
-                error ("Scanner can't perform action \(action)")
-            }
-        } else if transducer is Parser {
-            if let parser = transducer as? Parser {
-                if parser.canPerformAction(action) {
-                    parser.performAction(action, parameters)
-                }
-            } else {
-                error ("Parser can't perform action \(action)")
-            }
+        //Note: Get the parser or the scanner to perform the action if
+    //it can (it's a transducer); otherwise, get the sponser to do it.
+        //Guarantees an error message if action is missing.
+        debug("\t semantic table has to run \(action)(\(parameters))")
+        if self.transducer!.canPerformAction(action) {
+            self.transducer!.performAction(action, parameters)
+        } else if transducer!.sponsor!.canPerformAction(action) {
+            self.transducer!.sponsor!.performAction(action, parameters)
         } else {
-            let transducer = self.transducer!
-            transducer.performAction(action, parameters)
+        error ("Semantic action \"\(action)\" needs to be added to " +
+            "canPerformAction in \(type(of: transducer!.sponsor!))")
         }
         return goto
     }
@@ -345,12 +307,12 @@ class ReadaheadTable: Table, TableWithTransitionsWithStringKey {
 
     func run() throws -> Int? {
         // Peek at the next token label
-        let transducer = self.transducer as! Parser
-        let token = transducer.peekScannerToken()
+        let parser = self.transducer as! Parser
+        let token = parser.peekScannerToken()
         let tokenLabel = token.label
         let transition = transitions[tokenLabel]
         guard transition != nil else {
-            error("Syntax error: `\(tokenLabel)` not allowed\n") //Smalltalk has better error message...
+            error("Syntax error: `\(tokenLabel)` not allowed\n") //Smalltalk version has better error message...
             return nil
         }
 
@@ -362,15 +324,15 @@ class ReadaheadTable: Table, TableWithTransitionsWithStringKey {
         if !isRead {
             return goto
         }
-        transducer.discardScannerToken()
+        parser.discardScannerToken()
         if isStack {
-            transducer.tokenStack.append(token)
-            transducer.tableNumberStack.append(goto)
-            transducer.treeStack.append(isNode ? token : nil)
-            transducer.right = transducer.tokenStack.count - 1
-            transducer.left = transducer.right + 1
+            parser.tokenStack.append(token)
+            parser.tableNumberStack.append(goto)
+            parser.treeStack.append(isNode ? token : nil)
+            parser.right = parser.tokenStack.count - 1
+            parser.left = parser.right + 1
         }
-    debug("\tleft: \( transducer.left), right: \( transducer.right)")
+    debug("\tleft: \(parser.left), right: \(parser.right)")
     debug("\t\ttransition for \(tokenLabel) to \(goto)")
     return goto
   }
@@ -380,7 +342,7 @@ class ReadbackTable: Table, TableWithTransitionsWithPairKey {
     var tableType = TableType.ReadbackTable
     var tableNumber: Int = -1
     var transducer: Transducer?
-    var transitions: [PairHashable<String, Int>: (String, Int)] = [:]
+    var transitions: [Pair<String, Int>: (String, Int)] = [:]
     init() {}
     
     //Array<Any> is really Array<((String, Int), String, Int)>; i.e., a pair, attributes and goto.
@@ -388,31 +350,29 @@ class ReadbackTable: Table, TableWithTransitionsWithPairKey {
         transitions = [:]
         for triple in rawTable {
             let (pair, attributes, goto) = triple as! ((String, Int), String, Int)
-            transitions[PairHashable(pair)] = (attributes, goto)
+            transitions[Pair(pair)] = (attributes, goto)
         }
     }
 
     func run() throws -> Int? {
-        // peek at the next token label
-        let transducer = self.transducer as! Parser
-        //Readback considers the token label in the token stack and the state number in
+        //Peek at the next token label
+        let parser = self.transducer as! Parser
+        //Readback considers the token label in the token stack and the state number in the table number stack
 
         //Pick up the pair a (a string) and b (an integer).
-        let a = transducer.tokenStack[transducer.left - 1].label as String?
-        let b = transducer.tableNumberStack[transducer.left - 1] as Int
-        let pair = PairHashable((a!,b))
+        let a = parser.tokenStack[parser.left - 1].label as String?
+        let b = parser.tableNumberStack[parser.left - 1] as Int
+        let pair = Pair((a!,b))
         if transitions[pair] == nil {
             throw TransducerError.designError("incorrect Readback tables")
         }
-        let transition = transitions[pair]!
-        let attributes = transition.0
-        let goto = transition.1
+        let (attributes, goto) = transitions[pair]!
 
         let isRead = attributes.contains("R")
         if isRead {
-            transducer.left = transducer.left - 1
+            parser.left = parser.left - 1
         }
-        debug("\tleft: \( transducer.left), right: \( transducer.right)")
+        debug("\tleft: \(parser.left), right: \(parser.right)")
         return goto
     }
 }
@@ -432,11 +392,11 @@ class ShiftbackTable: Table {
     }
 
     func run() throws -> Int? {
-        let transducer = self.transducer as! Parser
+        let parser = self.transducer as! Parser
 
         //Adjust left by the amount specified and return the goto table
-        transducer.left = transducer.left - shift!
-        debug("\tleft: \( transducer.left), right: \( transducer.right)")
+        parser.left = parser.left - shift!
+        debug("\tleft: \(parser.left), right: \(parser.right)")
 
         return goto
     }
@@ -469,17 +429,16 @@ class ReduceTable: Table, TableWithTransitionsWithIntKey {
         // Pick up the new tree and simulate a readahead of A as a token
         // where the new tree is associated with A
         debug ("Reduce to \(nonterminal)")
-        let transducer = self.transducer as! Parser //Eliminate unwrapping once and for all
+        let parser = self.transducer as! Parser //Eliminate unwrapping once and for all
         var tree: VirtualTree? = nil
-        
-        if transducer.newTree != nil {
-            tree = transducer.newTree as VirtualTree?
-            transducer.newTree = nil as VirtualTree?
+
+        if let routine = parser.delayedRoutine { //Run if not nil.
+              tree = routine (); parser.delayedRoutine = nil
         } else {
             // Capture that one subtree (if any) in the stacks
-            debug("\tArray of size (\(transducer.treeStack.count)) - [\(transducer.left)~\(transducer.right)]")
-            let indices = transducer.left...transducer.right
-            let treeStackWithNils = transducer.treeStack[indices]
+            debug("\tArray of size (\(parser.treeStack.count)) - [\(parser.left)~\(parser.right)]")
+            let left = parser.left; let right = parser.right
+            let treeStackWithNils = left <= right ? parser.treeStack[left...right] : []
             let children = treeStackWithNils.compactMap { $0 } // treeStack without nils
             
             if children.count == 0 {
@@ -493,10 +452,10 @@ class ReduceTable: Table, TableWithTransitionsWithIntKey {
         debug ("Reduce to \(nonterminal) building tree \(String(describing: tree))")
             
         // Clear the stacks between [left, right]
-        let removeCount = transducer.right - transducer.left + 1
-        transducer.tokenStack.removeLast(removeCount)
-        transducer.tableNumberStack.removeLast(removeCount)
-        transducer.treeStack.removeLast(removeCount)
+        let removeCount = parser.right - parser.left + 1
+        parser.tokenStack.removeLast(removeCount)
+        parser.tableNumberStack.removeLast(removeCount)
+        parser.treeStack.removeLast(removeCount)
             
         // Use the top table number on the stack (`from table #`) and locate the pair (attr, `to table #`)
         // Case1: If you cannot find it, then it is a design error
@@ -504,7 +463,7 @@ class ReduceTable: Table, TableWithTransitionsWithIntKey {
         // Case3: Use the attributes as you did for a Readaheadtable
         //        + create a new token using the nonterminal as a symbol
         //        + adjust `left` and `right`
-        let tableNumber = transducer.tableNumberStack.last!
+        let tableNumber = parser.tableNumberStack.last!
         debug ("Looking for \(tableNumber) + \(nonterminal) -> ?")
             
         if let transition = self.transitions[tableNumber] {
@@ -513,14 +472,14 @@ class ReduceTable: Table, TableWithTransitionsWithIntKey {
             let isNode = attributes.contains("N")
             if isStack {
                 let newToken = Token(label: nonterminal, symbol: nonterminal)
-                transducer.tokenStack.append(newToken)
-                transducer.tableNumberStack.append(goto)
-                transducer.treeStack.append(isNode ? tree : nil)
+                parser.tokenStack.append(newToken)
+                parser.tableNumberStack.append(goto)
+                parser.treeStack.append(isNode ? tree : nil)
                 debug("\ttoken added to the stack is <\(nonterminal): \(nonterminal)>")
             }
-            transducer.right = transducer.treeStack.count - 1
-            transducer.left = transducer.right + 1
-            debug("\tleft: \( transducer.left), right: \( transducer.right)")
+            parser.right = parser.treeStack.count - 1
+            parser.left = parser.right + 1
+            debug("\tleft: \(parser.left), right: \(parser.right)")
                 
             return goto
         } else {
@@ -602,16 +561,13 @@ public final class Scanner: Transducer {
     var keptCharacters: String = ""
     
     public override func canPerformAction(_ action :String) -> Bool {
-        return action == "buildToken" || action == "syntaxError"
+        return action == "buildToken"
     }
     public override func performAction(_ action: String, _ parameters: [Any]) -> Void {
         switch (action) {
         case "buildToken":
             let label = parameters [0] as! String
             buildToken (label: label)
-        case "syntaxError":
-            let label = parameters [0] as! String
-            print ("Syntax error: \(label)")
         default:
             error ("Attempt to perform unknown action \(action)")
         }
@@ -620,7 +576,7 @@ public final class Scanner: Transducer {
     var start: String.Index?
     var current: String.Index?
 
-    static let sharedEmpty = Scanner()
+    nonisolated(unsafe) static let sharedEmpty = Scanner()
 
     private func isAtEnd() -> Bool {
         if let input = input {
@@ -658,17 +614,17 @@ public final class Scanner: Transducer {
             // will execute putting something into variable 'token'
         debug("----> Running discardToken")
 
-        var idx = 1
+        var index = 1
         token = nil
 
         while token == nil {
-            let table = tables[idx]!
+            let table = tables[index]!
       
             do {
-                debug("Scanner \(table.tableType) #\(idx) is running...\n")
-                idx = try table.run()!
+                debug("Scanner \(table.tableType) #\(index) is running...\n")
+                index = try table.run()!
             } catch {
-                print("Syntax error encountered in table \(idx).")
+                print("Syntax error encountered in table \(index).")
                 return
             }
         }
@@ -677,8 +633,8 @@ public final class Scanner: Transducer {
     
     func registerTables(rawTables: Array<Any>) ->  Void {
         // Transform raw scanner tables (tableType tableNumber ...) to appropriate table objects
-        for idx in (0...rawTables.count-1) {
-            let rawTable = rawTables[idx] as! Array<Any>
+        for index in (0...rawTables.count-1) {
+            let rawTable = rawTables[index] as! Array<Any>
             let tableNumber = rawTable [1] as! Int
             let type = rawTable[0] as! String
             do {
@@ -729,23 +685,21 @@ public final class Parser: Transducer {
     var treeStack: [VirtualTree?] = [nil]
     var left: Int = 0   // left, right has to do with a treeStack
     var right: Int = 0
-    // var tableNumber: Int = 0
     var newTree: VirtualTree? = nil
+    var delayedRoutine: (() -> VirtualTree)? = nil
+
     
     public override func canPerformAction(_ action :String) -> Bool {
         return action == "buildTree" || action == "buildTreeFromIndex"
     }
     public override func performAction(_ action: String, _ parameters: [Any]) -> Void {
-        print("performAction")
         switch (action) {
         case "buildTree":
-            print("buildTree")
             let label = parameters [0] as! String
-            buildTree (rootLabel: label)
+            delayedRoutine = delayedBuildTree(label)
         case "buildTreeFromIndex":
-            print("buildTreeFromIndex")
             let index = parameters [0] as! Int
-            buildTreeFromIndex (index)
+            delayedRoutine = delayedBuildTreeFromIndex(index)
         default:
             error ("Attempt to perform unknown action \(action)")
         }
@@ -767,8 +721,8 @@ public final class Parser: Transducer {
     }
     
     private func registerTables(rawTables: Array<Any>) -> Void {
-        for idx in 0...rawTables.count-1 {
-            let rawTable = rawTables[idx] as! Array<Any>
+        for index in 0...rawTables.count-1 {
+            let rawTable = rawTables[index] as! Array<Any>
             let type = rawTable[0] as! String
                 
             // Get the class name for the type, make a new instance, and then add it to tables.
@@ -800,15 +754,15 @@ public final class Parser: Transducer {
         //use that information to stop your loop.
              
         scanner.scanTokens(text)
-        var idx: Int = 1
-        var table = tables[idx]!
+        var index: Int = 1
+        var table = tables[index]!
             
         while table.tableType != .AcceptTable {
             do {
-                debug("Parser \(table.tableType) #\(idx) is running...\n")
-                idx = try table.run()! // idx be a number!
-                debug("\tgoing to #\(idx)...\n")
-                table = tables[idx]!
+                debug("Parser \(table.tableType) #\(index) is running...\n")
+                index = try table.run()! // The result returned is the next table to run
+                debug("\tgoing to #\(index)...\n")
+                table = tables[index]!
             } catch {
                 print("Syntax error") //See Smalltalk version for more detailed error message
             }
@@ -816,71 +770,34 @@ public final class Parser: Transducer {
             
         return treeStack.last!
     }
-        
-    //Semantic actions..
-//    func buildTree(rootLabel: String) {
-//        //Pick up the children from the tree stack between left and right inclusively
-//        //(provided they are not nil) and build a tree with the given label.
-//        //Store it in instance newTree so a reduce table can use it
-//            
-////        let range = (left <= right) ? left...right : []
-////        let children = treeStack[range].compactMap{ $0 } // discard nils
-////        self.newTree = Tree(label: rootLabel, children: children)
-////        let range = (left <= right) ? left...right : left...left
-//        
-//        let range = left...right
-//        let children = treeStack[range].compactMap{ $0 } // Picks up each non-nil object
-//        self.newTree = Tree(label: rootLabel, children: children)
-//
-//    }
     
-    func buildTree(rootLabel: String) {
+    func buildTree(_ rootLabel: String) {
         //Pick up the children from the tree stack between left and right inclusively
         //(provided they are not nil) and build a tree with the given label
         //Store it in instance newTree so a reduce table can use it
-            
-        let children = left > right ? [] : treeStack[left...right].compactMap{ $0 } // Picks up each non-nil object
+                    
+        let children = left <= right ? treeStack[left...right].compactMap{ $0 } : [] // Picks up each non-nil object
         self.newTree = Tree(label: rootLabel, children: children)
     }
     
-//    func buildTree(rootLabel: String) {
-//        // Make sure left <= right, and handle the case where it's not
-//        let left = min(self.left, self.right)
-//        let right = max(self.left, self.right)
-//        
-//        // Now that we know left <= right, we can safely create the range
-//        let safeRange = left...right
-//        
-//        // Ensure safeRange is within bounds of treeStack
-//        let lowerBound = max(0, left)
-//        let upperBound = min(treeStack.count - 1, right)
-//        
-//        // If the range is invalid, return early (you can handle this differently)
-//        if lowerBound > upperBound {
-//            print("Invalid range: \(lowerBound)...\(upperBound), returning empty children.")
-//            self.newTree = Tree(label: rootLabel, children: [])
-//            return
-//        }
-//        
-//        // Safely access treeStack with the valid range
-//        let children = treeStack[lowerBound...upperBound].compactMap { $0 } // Discard nils
-//        
-//        self.newTree = Tree(label: rootLabel, children: children)
-//    }
-        
     func buildTreeFromIndex(_ index: Int) {
-        //Index is positive 1,2,3,... => label is in the tree relative to the left end; i.e., to the right of left end.
-        //Index is negative -1,-2,-3,... => label is in the tree relative to the right end; i.e., to the left of right end.
-        
-//        let labelIndex = index >= 0 ? left + index : right + index + 1
-//        let range = (left <= right) ? left...right : []
-//        let children = treeStack[range].compactMap { $0 } // discard nils
-//        self.newTree = Tree(label: tokenStack[labelIndex], children: children)
-        
-        let range = left...right
-        let children = treeStack[range].compactMap{ $0 } // Picks up each non-nil object
+        //Index is (+1,+2,+3... => label is in the token relative to the left-end; i.e., to the right of left end.
+        //Index is (-1,-2,-3... => label is in the token relative to the right-end; i.e., to the left of right end.
+        //Pick up the children from the tree stack between left and right inclusively
+        //(provided they are not nil) and build a tree with the label in the token specified by index.
+        //Store it in instance newTree so a reduce table can use it
+            
+        let children = left <= right ? treeStack[left...right].compactMap{ $0 } : [] // Picks up each non-nil object
         let label = tokenStack[index > 0 ? left+index-1 : right+index+1].symbol
         self.newTree = Tree(label: label, children: children)
+    }
+
+    func delayedBuildTree (_ rootNode: String) -> (() -> VirtualTree) {
+          return { self.buildTree(rootNode); return self.newTree! }
+    }
+
+    func delayedBuildTreeFromIndex (_ index: Int) -> (() -> VirtualTree) {
+          return { self.buildTreeFromIndex(index); return self.newTree! }
     }
 
     func discardScannerToken() -> Void {

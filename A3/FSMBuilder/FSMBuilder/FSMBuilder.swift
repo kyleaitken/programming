@@ -44,7 +44,7 @@ public final class FSMBuilder : Translator {
             return walkInteger (tree)
         case "walkAttributes":
             return walkAttributes (tree)
-        case "walkbuildTreeOrTokenFromName":
+        case "walkBuildTreeOrTokenFromName":
             return walkbuildTreeOrTokenFromName (tree)
         case "walkbuildTreeFromRightIndex":
             return walkbuildTreeFromRightIndex (tree)
@@ -72,6 +72,8 @@ public final class FSMBuilder : Translator {
             return walkAnd (tree)
         case "walkMinus":
             return walkMinus (tree)
+        case "walkDotDot":
+            return walkDotDot (tree)
         default:
             error ("Attempt to perform unknown walkTree routine \(action)")
             return 0
@@ -92,10 +94,10 @@ public final class FSMBuilder : Translator {
     static public func example1 () -> String {//Returns a string to please ContentView
         let grammar = Grammar  ()
         Grammar.activeGrammar = grammar
-        // change the type to "parser" to use the parserFSMs file
-        grammar.type = "scanner"
         
-        let fileName = grammar.type == "scanner" ? "scannerFSMs" : "parserFSMs"
+        // change to false to use parserFSMs file as input
+        let useScannerFile = true
+        let fileName = useScannerFile ? "scannerFSMs" : "parserFSMs"
         var fileContent = ""
 
         if let filePath = Bundle.main.path(forResource: fileName, ofType: "txt") {
@@ -112,23 +114,22 @@ public final class FSMBuilder : Translator {
         let builder = FSMBuilder ();
         let text = fileContent
         let testText = """
-        parser
-                fsm17 = ($a*) - (($a $a)*); //Should recognize only an odd number of a's (you took away the even ones).
-                fsm18 = ($a*) & (($a $a)*); //Should recognize only an even number of a's.
-                complex2 = (($a $a)* | $b $c | $d) - ($a* | $b $c | $g); //Should recognize d.
+        scanner
+                fsm2 = $0 .. $3; //4 transitions. Just a new notation equivalent to fsm1.
         """
         builder.process (text)
         
         print ("Finished building \(grammar.type) FSMs")
         builder.printOn(fsmMap: builder.fsmMap)
-        
         return "Done"
     }
     
     // tells you the kind of fsm you're building
     func processTypeNow (_ parameters:[Any]) -> Void {
           //The child will be a walkString with "scanner" or "parser"
+        print("PROCESS TYPE NOW", parameters)
         let type = parameters [0] as? String;
+        Grammar.activeGrammar?.type = type!
         //Tell the grammar what type it is ...
     }
       
@@ -136,8 +137,8 @@ public final class FSMBuilder : Translator {
         let treeList = (tree as? Tree)!
         var index = 0;
         while (index < treeList.children.count) {
-            let child0 = treeList.child(index)
-            let child1 = treeList.child(index+1)
+            let child0 = treeList.children[index]
+            let child1 = treeList.children[index+1]
 
             let name = (child0 as? Token)!.symbol
             let fsm = walkTree (child1)
@@ -193,7 +194,7 @@ public final class FSMBuilder : Translator {
             return 0
         }
         // should build an fsm with +
-        let child = tree.child(0)
+        let child = tree.children[0]
         let fsm = walkTree(child) as? FiniteStateMachine
         return fsm!.plus()
     }
@@ -203,7 +204,7 @@ public final class FSMBuilder : Translator {
             print("Error: Expected tree to be of type Tree, but it's not.")
             return 0
         }
-        let child = tree.child(0)
+        let child = tree.children[0]
         let fsm = walkTree(child) as? FiniteStateMachine
         return fsm?.or(otherFSM: FiniteStateMachine.empty()) as Any
     }
@@ -219,6 +220,22 @@ public final class FSMBuilder : Translator {
         } else {
             print("walkTree did not return a FiniteStateMachine")
             return 0
+        }
+    }
+    
+    func walkDotDot (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        let startToken = tree.children[0] as! Token
+        let endToken = tree.children[1] as! Token
+        
+        if startToken.label == "walkInteger" {
+            return FiniteStateMachine.forIntegers(startToken.symbol, endToken.symbol)
+        } else {
+            return FiniteStateMachine.forCharacters(startToken.symbol, endToken.symbol)
         }
     }
     
@@ -247,11 +264,11 @@ public final class FSMBuilder : Translator {
             return 0
         }
         
-        guard let fsm1 = walkTree(tree.child(0)) as? FiniteStateMachine else {
+        guard let fsm1 = walkTree(tree.children[0]) as? FiniteStateMachine else {
             print("Error: fsm1 in walkAnd is not an FSM")
             return 0
         }
-        guard let fsm2 = walkTree(tree.child(1)) as? FiniteStateMachine else {
+        guard let fsm2 = walkTree(tree.children[1]) as? FiniteStateMachine else {
             print("Error: fsm2 in walkAnd is not an FSM")
             return 0
         }
@@ -265,11 +282,11 @@ public final class FSMBuilder : Translator {
             return 0
         }
         
-        guard let fsm1 = walkTree(tree.child(0)) as? FiniteStateMachine else {
+        guard let fsm1 = walkTree(tree.children[0]) as? FiniteStateMachine else {
             print("Error: fsm1 in walkMinus is not an FSM")
             return 0
         }
-        guard let fsm2 = walkTree(tree.child(1)) as? FiniteStateMachine else {
+        guard let fsm2 = walkTree(tree.children[1]) as? FiniteStateMachine else {
             print("Error: fsm2 in walkMinus is not an FSM")
             return 0
         }
@@ -300,7 +317,7 @@ public final class FSMBuilder : Translator {
             print("Error: Expected tree to be of type Tree, but it's not.")
             return nil
         }
-        return tree.child(0)
+        return tree.children[0]
     }
     
     func walkString (_ tree : VirtualTree) -> Any {
@@ -320,15 +337,18 @@ public final class FSMBuilder : Translator {
     
     func walkIdentifier (_ tree: VirtualTree) -> Any {
         // Ensure tree is a valid Tree instance
-        let fsmToken = tree as! Token
-        
-        // Retrieve the FSM to copy
-        guard let fsm = fsmMap[fsmToken.symbol] as? FiniteStateMachine else {
-            print("Error: FSM named \(fsmToken.symbol) not found.")
-            return 0
+        let token = tree as! Token
+ 
+        if let fsm = fsmMap[token.symbol] as? FiniteStateMachine {
+            return FiniteStateMachine.forIdentifier(fsm)
+        } else {
+            // if it's not an fsm, it's a char
+            if ((Grammar.activeGrammar?.isParser()) == true) {
+                return FiniteStateMachine.forString(token.symbol)
+            } else {
+                return FiniteStateMachine.forCharacter(token.symbol)
+            }
         }
-        
-        return FiniteStateMachine.forIdentifier(fsm)
     }
     
     func walkAttributes (_ tree : VirtualTree) -> Any {
@@ -338,7 +358,7 @@ public final class FSMBuilder : Translator {
         }
         
         // build fsm from first child, other children will be attributes
-        let child0 = tree.child(0)
+        let child0 = tree.children[0]
         let fsm = walkTree(child0)
         
         guard let finiteStateMachine = fsm as? FiniteStateMachine else {
@@ -349,7 +369,7 @@ public final class FSMBuilder : Translator {
         // get attributes
         var attributes: [String] = []
         for index in 1..<tree.children.count {
-            if let attributeToken = tree.child(index) as? Token {
+            if let attributeToken = tree.children[index] as? Token {
                 let symbol = attributeToken.symbol
                 attributes.append(symbol)
             } else {
@@ -368,7 +388,7 @@ public final class FSMBuilder : Translator {
             return 0
         }
         
-        let child0 = tree.child(0)
+        let child0 = tree.children[0]
         let symbol = (child0 as? Token)!.symbol
         let action = Grammar.activeGrammar?.type == "scanner" ? "#buildToken" : "#buildTree"
         return FiniteStateMachine.forAction([symbol], isRootBuilding: true, actionName: action)
@@ -387,7 +407,7 @@ public final class FSMBuilder : Translator {
             print("Error: Expected tree to be of type Tree, but it's not.")
             return 0
         }
-        let child0 = tree.child(0)
+        let child0 = tree.children[0]
         let symbol = (child0 as? Token)!.symbol
         
         // Convert symbol to an integer
@@ -405,7 +425,7 @@ public final class FSMBuilder : Translator {
             print("Error: Expected tree to be of type Tree.")
             return 0
         }
-        let child0 = tree.child(0)
+        let child0 = tree.children[0]
         return walkSemanticAction(child0, isRootBuilding: true)
     }
     
@@ -414,7 +434,7 @@ public final class FSMBuilder : Translator {
             print("Error: Expected tree to be of type Tree.")
             return 0
         }
-        let child0 = tree.child(0)
+        let child0 = tree.children[0]
         return walkSemanticAction(child0, isRootBuilding: false)
     }
     
@@ -425,13 +445,13 @@ public final class FSMBuilder : Translator {
         }
 
         // Extract the action from the first child (assuming it's a token)
-        let actionToken = tree.child(0) as! Token
+        let actionToken = tree.children[0] as! Token
         let actionSymbol = "#" + actionToken.symbol
 
         // Extract parameters from the remaining children
         var parameters: [Any] = []
         for i in 1..<tree.children.count {
-            if let token = tree.child(i) as? Token {
+            if let token = tree.children[i] as? Token {
                 let param = token.asConstant()
                 parameters.append(param)
             }
@@ -447,7 +467,7 @@ public final class FSMBuilder : Translator {
         }
         
         // build fsm from first child, other children will be attributes
-        let child0 = tree.child(0)
+        let child0 = tree.children[0]
         let fsm = walkTree(child0)
         
         guard let fsmCopy = fsm as? FiniteStateMachine else {

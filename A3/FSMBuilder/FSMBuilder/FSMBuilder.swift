@@ -66,6 +66,12 @@ public final class FSMBuilder : Translator {
             return walkStar (tree)
         case "walkOr":
             return walkOr (tree)
+        case "walkConcatenation":
+            return walkConcatentation (tree)
+        case "walkAnd":
+            return walkAnd (tree)
+        case "walkMinus":
+            return walkMinus (tree)
         default:
             error ("Attempt to perform unknown walkTree routine \(action)")
             return 0
@@ -87,7 +93,7 @@ public final class FSMBuilder : Translator {
         let grammar = Grammar  ()
         Grammar.activeGrammar = grammar
         // change the type to "parser" to use the parserFSMs file
-        grammar.type = "parser"
+        grammar.type = "scanner"
         
         let fileName = grammar.type == "scanner" ? "scannerFSMs" : "parserFSMs"
         var fileContent = ""
@@ -105,6 +111,12 @@ public final class FSMBuilder : Translator {
         
         let builder = FSMBuilder ();
         let text = fileContent
+        let testText = """
+        parser
+                fsm17 = ($a*) - (($a $a)*); //Should recognize only an odd number of a's (you took away the even ones).
+                fsm18 = ($a*) & (($a $a)*); //Should recognize only an even number of a's.
+                complex2 = (($a $a)* | $b $c | $d) - ($a* | $b $c | $g); //Should recognize d.
+        """
         builder.process (text)
         
         print ("Finished building \(grammar.type) FSMs")
@@ -213,25 +225,74 @@ public final class FSMBuilder : Translator {
     func walkOr (_ tree : VirtualTree) -> Any {
         // loop over children, which could be a list of trees or tokens
         var fsmsToOr: [FiniteStateMachine] = []
-        
         guard let tree = tree as? Tree else {
             print("Error: Expected tree to be of type Tree, but it's not.")
             return 0
         }
         
         for child in tree.children {
-            print("walk look child  ", child)
             guard let fsm = walkTree(child) as? FiniteStateMachine else {
                 print("ERROR: did not get an FSM back from walkTree")
                 return 0
             }
-            print("fsm in walkOr: ", fsm.printOn())
             fsmsToOr.append(fsm)
         }
         
-        let resultFSM = FiniteStateMachine.orAll(FSMCollection: fsmsToOr)
-        print("WalkOr result FSM: ", resultFSM.printOn())
-        return resultFSM
+        return FiniteStateMachine.orAll(FSMCollection: fsmsToOr)
+    }
+    
+    func walkAnd (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        guard let fsm1 = walkTree(tree.child(0)) as? FiniteStateMachine else {
+            print("Error: fsm1 in walkAnd is not an FSM")
+            return 0
+        }
+        guard let fsm2 = walkTree(tree.child(1)) as? FiniteStateMachine else {
+            print("Error: fsm2 in walkAnd is not an FSM")
+            return 0
+        }
+        
+        return fsm1.andAnFSM(otherFSM: fsm2)
+    }
+    
+    func walkMinus (_ tree : VirtualTree) -> Any {
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        guard let fsm1 = walkTree(tree.child(0)) as? FiniteStateMachine else {
+            print("Error: fsm1 in walkMinus is not an FSM")
+            return 0
+        }
+        guard let fsm2 = walkTree(tree.child(1)) as? FiniteStateMachine else {
+            print("Error: fsm2 in walkMinus is not an FSM")
+            return 0
+        }
+        
+        return fsm1.minusAnFSM(otherFSM: fsm2)
+    }
+    
+    func walkConcatentation (_ tree : VirtualTree) -> Any {
+        var fsmsToConcat: [FiniteStateMachine] = []
+        guard let tree = tree as? Tree else {
+            print("Error: Expected tree to be of type Tree, but it's not.")
+            return 0
+        }
+        
+        for child in tree.children {
+            guard let fsm = walkTree(child) as? FiniteStateMachine else {
+                print("ERROR: did not get an FSM back from walkTree")
+                return 0
+            }
+            fsmsToConcat.append(fsm)
+        }
+        
+        return FiniteStateMachine.concatenateAll(fsms: fsmsToConcat)
     }
     
     func extractFirstChild (_ tree : VirtualTree) -> VirtualTree? {

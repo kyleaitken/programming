@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		064B58F12D4986150095FF2D /* scannerFSMs.txt in Resources */ = {isa = PBXBuildFile; fileRef = 064B58F02D4986150095FF2D /* scannerFSMs.txt */; };
 		064B58F22D4986150095FF2D /* parserFSMs.txt in Resources */ = {isa = PBXBuildFile; fileRef = 064B58EF2D4986150095FF2D /* parserFSMs.txt */; };
+		064B58F62D4C2E550095FF2D /* Relation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 064B58F52D4C2E4A0095FF2D /* Relation.swift */; };
 		C6BD02F729805787008A1E06 /* FSMBuilderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BD02F629805787008A1E06 /* FSMBuilderApp.swift */; };
 		C6BD02F929805787008A1E06 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6BD02F829805787008A1E06 /* ContentView.swift */; };
 		C6BD02FB29805789008A1E06 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6BD02FA29805789008A1E06 /* Assets.xcassets */; };
@@ -22,6 +23,7 @@
 /* Begin PBXFileReference section */
 		064B58EF2D4986150095FF2D /* parserFSMs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = parserFSMs.txt; sourceTree = "<group>"; };
 		064B58F02D4986150095FF2D /* scannerFSMs.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = scannerFSMs.txt; sourceTree = "<group>"; };
+		064B58F52D4C2E4A0095FF2D /* Relation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Relation.swift; sourceTree = "<group>"; };
 		C6BD02F329805787008A1E06 /* FSMBuilder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FSMBuilder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6BD02F629805787008A1E06 /* FSMBuilderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FSMBuilderApp.swift; sourceTree = "<group>"; };
 		C6BD02F829805787008A1E06 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -75,6 +77,7 @@
 			children = (
 				067AC8062D406D5600B55F65 /* Resources */,
 				C6BD02F629805787008A1E06 /* FSMBuilderApp.swift */,
+				064B58F52D4C2E4A0095FF2D /* Relation.swift */,
 				C6BD02F829805787008A1E06 /* ContentView.swift */,
 				C6BD030529805EDB008A1E06 /* FSMBuilder.swift */,
 				C6BD030929806907008A1E06 /* Grammar.swift */,
@@ -170,6 +173,7 @@
 				C6BD030C29809273008A1E06 /* FSMLibrary.swift in Sources */,
 				C6BD030829805F76008A1E06 /* ParserLibrary.swift in Sources */,
 				C6BD030629805EDB008A1E06 /* FSMBuilder.swift in Sources */,
+				064B58F62D4C2E550095FF2D /* Relation.swift in Sources */,
 				C6BD02F929805787008A1E06 /* ContentView.swift in Sources */,
 				C6BD030A29806907008A1E06 /* Grammar.swift in Sources */,
 				C6BD02F729805787008A1E06 /* FSMBuilderApp.swift in Sources */,

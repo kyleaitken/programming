@@ -14,7 +14,6 @@ struct ContentView: View {
                 .imageScale(.large)
                 .foregroundColor(.accentColor)
             Text (FSMBuilder.example1())
-            Text("Hello, world!")
         }
         .padding()
     }

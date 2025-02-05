@@ -1,14 +1,14 @@
 //
-//  FSMBuilderApp.swift
-//  FSMBuilder
+//  ConstructorApp.swift
+//  Constructor
 //
-//  Created by Wilf Lalonde on 2023-01-24.
+//  Created by Kyle Aitken on 2025-02-05.
 //
 
 import SwiftUI
 
 @main
-struct FSMBuilderApp: App {
+struct ConstructorApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

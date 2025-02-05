@@ -1,6 +1,6 @@
 //
 //  Relation.swift
-//  FSMBuilder
+//  Constructor
 //
 //  Created by Kyle Aitken on 2025-01-30.
 //

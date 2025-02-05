@@ -1,6 +1,6 @@
 //
-//  FSMBuilder.swift
-//  FSMBuilder
+//  Constructor.swift
+//  Constructor
 //
 //  Created by Wilf Lalonde on 2023-01-24.
 //
@@ -9,7 +9,7 @@ import Foundation
 
 typealias treeClosure = (VirtualTree) -> Any //Ultimately FSM
 
-public final class FSMBuilder : Translator {
+public final class Constructor : Translator {
     
     var parser: Parser?
     var tree: VirtualTree? = nil
@@ -95,9 +95,7 @@ public final class FSMBuilder : Translator {
         let grammar = Grammar  ()
         Grammar.activeGrammar = grammar
         
-        // change to false to use parserFSMs file as input
-        let useScannerFile = true
-        let fileName = useScannerFile ? "scannerFSMs" : "parserFSMs"
+        let fileName = "parserFSMs"
         var fileContent = ""
 
         if let filePath = Bundle.main.path(forResource: fileName, ofType: "txt") {
@@ -111,7 +109,39 @@ public final class FSMBuilder : Translator {
             print("File not found in the app bundle.")
         }
         
-        let builder = FSMBuilder ();
+        let builder = Constructor ();
+        let text = fileContent
+        let testText = """
+        scanner
+                fsm2 = $0 .. $3; //4 transitions. Just a new notation equivalent to fsm1.
+        """
+        builder.process (text)
+        
+        print ("Finished building \(grammar.type) FSMs")
+        builder.printOn(fsmMap: builder.fsmMap)
+        return "Done"
+    }
+    
+    static public func example2 () -> String {//Returns a string to please ContentView
+        let grammar = Grammar  ()
+        Grammar.activeGrammar = grammar
+        
+        // change to false to use parserFSMs file as input
+        let fileName = "scannerFSMs"
+        var fileContent = ""
+
+        if let filePath = Bundle.main.path(forResource: fileName, ofType: "txt") {
+            let fileURL = URL(fileURLWithPath: filePath)
+            do {
+                fileContent = try String(contentsOf: fileURL, encoding: .utf8)
+            } catch {
+                print("Error reading the file: \(error)")
+            }
+        } else {
+            print("File not found in the app bundle.")
+        }
+        
+        let builder = Constructor ();
         let text = fileContent
         let testText = """
         scanner
@@ -144,7 +174,7 @@ public final class FSMBuilder : Translator {
             let fsm = walkTree (child1)
 
             fsmMap [name] = fsm
-            Grammar.activeGrammar!.addMacro (name, fsm)
+            Grammar.activeGrammar!.addMacro (name, fsm as! FiniteStateMachine)
             index += 2;
         }
         return 0
@@ -478,6 +508,15 @@ public final class FSMBuilder : Translator {
         // need to override attributes to "L"
         fsmCopy.override(["look"])
         return fsmCopy
+    }
+    
+    func processAndDiscardDefaultsNow() {
+        //Pick up the tree just built containing either the attributes, keywords, optimize, and output tree,
+        //process it with walkTree, and remove it from the tree stack... by replacing the entry by nil..."
+        let tree: Tree = self.parser!.treeStack.last as! Tree
+        self.walkTree(tree)
+        self.parser!.treeStack.removeLast()
+        self.parser!.treeStack.append(nil)
     }
         
 var scannerTables: Array<Any> = [

@@ -4,7 +4,7 @@ parser
 
    //These are the easy ones first...
    fsm1 = ; //The empty string
-   fsm2 = a; //The attribute should be "RS" because its a terminal.
+   fsm2 = a; //The attribute should be "RS" because its a terminal. 
    fsm3 = "hi"; //This should result in an FSM recognizing the string with attribues "RS" (like the above fsm).
       //Note: If this were in a scanner, it would be an FSM recognizing $h and $i.
    fsm4 = A; //The attribute should be "RSN" because its a nonterminal. The grammar object is fudged to accept this as a parser nonterminal default.
@@ -55,7 +55,7 @@ parser
 
    //The following illustrates why you need reduce to be use by operation -.
    //FSM complex2 is not so complex after reduce runs...
-   complex2 = ((a a)* | b c | d) - (a* | b c | g); //Should recognize d.
+   complex2 = ((a a)* | b c | d) - (a* | b c | g); //Should recognize d. 
         //Why does it recognize d?
 	//Take an even number of a's via (a a)* one the left but take away a* on the right. (so nothing left)
 	//Take "b c" on the left and take away "b c" on the right (so nothing left)

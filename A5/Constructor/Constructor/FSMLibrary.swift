@@ -1,6 +1,6 @@
 //
 //  FSMLibrary.swift
-//  FSMBuilder
+//  Constructor
 //
 //  Created by Wilf Lalonde on 2023-01-24.
 //
@@ -11,6 +11,14 @@ public class FiniteStateMachine {
     var states: Array<FiniteStateMachineState>
     
     init () {states = []}
+    
+    public var description: String {
+        var string: String = "\n"
+        for state in states {
+            string += state.description
+        }
+        return string
+    }
 
     func override (_ attributes: Array<String>) {
         for state in states {
@@ -100,6 +108,14 @@ public class FiniteStateMachine {
     func allStatesDo<T>(closure: (FiniteStateMachineState) -> [T]) -> [T] {
         // Apply the closure to each initial state, and gather the results into a single array
         return self.states.flatMap { closure($0) }
+    }
+    
+    func transitionsDo(closure: (Transition) -> Void) {
+        for state in states {
+            for transition in state.transitions {
+                closure(transition)
+            }
+        }
     }
     
     func statesDo(closure: (FiniteStateMachineState) -> Void) {
@@ -842,3 +858,4 @@ public class AttributeList {
         return lhs.isRead == rhs.isRead && lhs.isKeep == rhs.isKeep && lhs.isNode == rhs.isNode && lhs.isStack == rhs.isStack
     }
 }
+

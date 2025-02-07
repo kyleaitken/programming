@@ -15,13 +15,33 @@ public final class Grammar {
     var keywords: [String] = []
     
     init () {
-        type = "scanner"
-        nonterminals = ["A", "B", "C"];
+        type = ""
+        nonterminals = [];
         macros = [:]
     }
     //finiteStateMachine:
     func addMacro (_ macro: String, _ fsm: FiniteStateMachine) -> Void {
         macros [macro] = fsm
+    }
+    
+    public var description: String {
+        var string = "Grammar nonterminals:\n\n"
+        for item in self.nonterminals {
+            string += "\(item)\n"
+        }
+        
+        string += "\nGrammar macros: \n\n"
+        for (name, macro) in self.macros {
+            string += "\(name):\n"
+            string += macro.description + "\n"
+        }
+        
+        string += "\nGrammar Productions: \n\n"
+        for (name, production) in self.productions {
+            string += production.description + "\n"
+        }
+        
+        return string
     }
     
     func addNonterminal (_ name: String) -> Void {
@@ -152,7 +172,7 @@ public final class Grammar {
         var changed: Bool = true
         while (changed) {
             changed = false
-            for (A, production) in productions {//A is left part (for information only)
+            for (_, production) in productions {//A is left part (for information only)
                 if (!production.generatesE) {
                     for state in self.eSuccessors (production.fsm.getInitialStates ()) {//of A
                         if state.isFinal {production.generatesE = true; changed = true}
@@ -168,7 +188,7 @@ public final class Grammar {
         var changed: Bool = true
         while (changed) {
             changed = false
-            for (A, production) in productions {//A is for information only
+            for (_, production) in productions {//A is for information only
                 for state in eSuccessors (production.fsm.getInitialStates ()) {
                     for transition in state.transitions {
                         if self.isReadTerminalTransition (transition) {
@@ -176,7 +196,7 @@ public final class Grammar {
                             //if (!production.firstSet.contains)
                         }
                         if self.isNonterminalTransition (transition) {
-                            var M = transition.label!.name //NOT for information only
+                            let M = transition.label!.name //NOT for information only
                             if production.firstSet.addAllIfAbsentAdded (self.productionFor (M).firstSet) {changed = true}
                         }
                     }
@@ -295,7 +315,20 @@ class Production : CustomStringConvertible {
             var index = 0
             for symbol in lookahead! {
                 if index > 0 {string += " "}; index += 1
-                string += symbol
+                if (Grammar.activeGrammar?.isScanner() == true) {
+                    // print ascii as a string
+                    if let intSymbol = Int(symbol) {
+                        if Grammar.isPrintable(intSymbol) {
+                            if intSymbol == 32 {
+                                string += "\" \""
+                            } else {
+                                string += String(Character(UnicodeScalar(intSymbol)!))
+                            }
+                        }
+                    }
+                } else {
+                    string += symbol
+                }
             }
             string += "}"
         }

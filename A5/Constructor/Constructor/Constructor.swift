@@ -129,7 +129,7 @@ public final class Constructor : Translator {
             8: "toyParserGrammarToTestFollowSets"
         ]
         
-        let numberToTest = 5
+        let numberToTest = 8
         let fileName = exampleFiles[numberToTest]
         var fileContent = ""
 

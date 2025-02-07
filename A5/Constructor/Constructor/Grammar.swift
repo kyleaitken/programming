@@ -158,12 +158,17 @@ public final class Grammar {
     
     
     func eSuccessors (_ fsmStates: Array<FiniteStateMachineState>) -> Array<FiniteStateMachineState> {
+    //Revised by Eric Leblanc.
         var result: Array<FiniteStateMachineState> = []
         for state in fsmStates {result.append (state)}
-        for state in result {
+        //for state in result {//Swift won't allow state to encounter results that were recently added.
+        var i = 0
+        while i < result.count {
+            let state = result[i]
             for transition in state.transitions {
-                if isETransitionLabel (transition.label!) {result.append (transition.goto!)}
+                if isETransitionLabel (transition.label!) {result.appendIfAbsent (transition.goto!)}
             }
+            i += 1
         }
         return result
     }

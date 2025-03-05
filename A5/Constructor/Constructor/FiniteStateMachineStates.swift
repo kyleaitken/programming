@@ -10,8 +10,16 @@ public class FiniteStateMachineState: Relatable {
     var isInitial: Bool = false
     var isFinal: Bool = false
     var transitions: Array<Transition>
+    var leftPart: String = ""
+    var debug = true
     
     init () {transitions = []}
+    
+    init (final: Bool) {
+        transitions = []
+        isFinal = final
+        isInitial = !isFinal
+    }
     
     func printOn() {
         var stateDescription = "State \(stateNumber)"
@@ -45,7 +53,6 @@ public class FiniteStateMachineState: Relatable {
         
         return stateDescription
     }
-    
     
     func copy() -> FiniteStateMachineState {
         let newFsmState = FiniteStateMachineState()
@@ -195,4 +202,67 @@ public class DualFiniteStateMachineState: FiniteStateMachineState {
         return nil
     }
     
+}
+
+
+public class ReadaheadState: FiniteStateMachineState {
+    var items: [FiniteStateMachineState] = []
+    
+    override func printOn() {
+        let itemStateNumbers = items.map { String($0.stateNumber) }.joined(separator: " ")
+        print("ReadaheadState \(self.stateNumber) {\(itemStateNumbers)}")
+        
+        for transition in self.transitions {
+            transition.printOn()
+        }
+    
+    }
+    
+}
+
+
+public class ReadbackState: FiniteStateMachineState {
+    var items: [Pairing] = []
+    
+    override func printOn() {
+        let itemPairs = items.map { $0.terseDescription }.joined(separator: " ")
+        print("Readback State: \(self.stateNumber) {\(itemPairs)}")
+        
+        for transition in self.transitions {
+            transition.printOn()
+        }
+    }
+}
+
+
+public class ReduceState: FiniteStateMachineState {
+    var nonterminal: String = ""
+    
+    override func printOn() {
+        print("Reduce \(self.stateNumber) to \(nonterminal)")
+    }
+
+}
+
+
+public class SemanticState: FiniteStateMachineState {
+    var label: Label?
+    var goto: FiniteStateMachineState?
+        
+    init(_ label: Label, _ goto: FiniteStateMachineState) {
+        super.init()
+        self.label = label
+        self.goto = goto
+    }
+    
+    override func printOn() {
+        print("\(label!.printOn()) goto State \(goto?.stateNumber ?? -1)")
+    }
+}
+
+
+public class AcceptState: FiniteStateMachineState {
+    override func printOn() {
+        print("Accept State \(self.stateNumber)")
+    }
 }

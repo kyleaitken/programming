@@ -10,10 +10,21 @@ import Foundation
 typealias treeClosure = (VirtualTree) -> Any //Ultimately FSM
 
 public final class Constructor : Translator {
-    
+    var debug = true
     var parser: Parser?
     var tree: VirtualTree? = nil
     var fsmMap: Dictionary<String,Any> = [:] //Ultimately FSM
+    var readaheadStates: [ReadaheadState] = []
+    var readbackStates: [ReadbackState] = []
+    var reduceStates: Dictionary<String, ReduceState> = [:] // key is a nonterminal
+    var semanticStates: [SemanticState] = []
+    var acceptState: AcceptState?
+    var right: Relation<FiniteStateMachineState, Label>?
+    var down: Relation<FiniteStateMachineState, String>?
+    var left: Relation<Pairing, Pairing>?
+    var up: Relation<Pairing, String>?
+    var invisibleLeft: Relation<Pairing, Pairing>?
+    var visibleLeft: Relation<Pairing, Pairing>?
     
     init() {
         parser = Parser(sponsor: self, parserTables: parserTables, scannerTables: scannerTables)
@@ -23,10 +34,33 @@ public final class Constructor : Translator {
         if let tree = parser!.parse(text) as? Tree {
             print("tree from parser:")
             print(tree)
-            walkTree(tree)
+            _ = walkTree(tree)
         } else {
             print("Failed to parse the text into a Tree")
         }
+    }
+    
+    func renumber () {
+        var count = 1
+        Grammar.activeGrammar?.renumber()
+        
+        for raState in readaheadStates {
+            raState.stateNumber = count
+            count += 1
+        }
+        for rbState in readbackStates {
+            rbState.stateNumber = count
+            count += 1
+        }
+        for reduceState in reduceStates.values {
+            reduceState.stateNumber = count
+            count += 1
+        }
+        for s in semanticStates {
+            s.stateNumber = count
+            count += 1
+        }
+        acceptState?.stateNumber = count
     }
     
     func walkTree (_ tree: VirtualTree) -> Any {
@@ -126,10 +160,12 @@ public final class Constructor : Translator {
             5: "toyParserGrammarLeftRecursive",
             6: "toyParserGrammarRightRecursive",
             7: "toyParserGrammarNonRecursive",
-            8: "toyParserGrammarToTestFollowSets"
+            8: "toyParserGrammarToTestFollowSets",
+            9: "LISPGrammarWithInvisibles",
+            10: "parserGrammar"
         ]
         
-        let numberToTest = 8
+        let numberToTest = 1
         let fileName = exampleFiles[numberToTest]
         var fileContent = ""
 
@@ -146,14 +182,323 @@ public final class Constructor : Translator {
         
         let builder = Constructor ();
         builder.process (fileContent)
-        builder.printOn(fsmMap: builder.fsmMap)
+        builder.processReadaheadAndReadback()
+//        builder.printOn(fsmMap: builder.fsmMap)
         return "Done"
+    }
+    
+    func processReadaheadAndReadback() {
+        guard let grammar = Grammar.activeGrammar else {
+            return
+        }
+        
+        // create reduce states
+        for nonterminal in grammar.nonterminals {
+            let reduceState = ReduceState()
+            reduceState.nonterminal = nonterminal
+            reduceStates[nonterminal] = reduceState
+        }
+        
+        // renumber collections
+        renumber()
+        
+        // create the right and down relations from the grammar's productions
+        self.createRightAndDownRelations()
+        
+        // build our ra states
+        self.buildReadaheadStates()
+        
+        // split the left relation into invisible/visible relations
+        self.splitLeftRelation()
+        
+        // build readback state bridges
+        if (Grammar.activeGrammar?.isScanner() == true) {
+            self.buildScannerBridges()
+        } else {
+            self.buildReadbackStateBridges()
+            self.finishReadbackStates()
+        }
+        
+        // print the states
+        self.printAllStates()
+    }
+    
+    func createRightAndDownRelations() {
+        guard let grammar = Grammar.activeGrammar else {
+            return
+        }
+        
+        right = Relation()
+        grammar.allRightTriplesDo { (state, transitionLabel, goto) in
+            right!.add(from: state, relationship: transitionLabel, to: goto)
+        }
+        
+        down = Relation()
+        grammar.allDownTriplesDo { (state, nonterminal, initialState) in
+            down!.add(from: state, relationship: nonterminal, to: initialState)
+        }
+    }
+    
+    
+    func buildReadaheadStates () {
+        self.up = Relation ()
+        self.left = Relation ()
+        
+        for goalProduction in Grammar.activeGrammar!.goalProductions() {
+            let readaheadState = ReadaheadState()
+            readaheadState.items = goalProduction.fsm.getInitialStates()
+            readaheadStates.append(readaheadState)
+        }
+        renumber()
+        
+        var index = 0
+        while index < readaheadStates.count {
+            let raState = readaheadStates[index]
+            let localDown = down?.performRelationStar(items: raState.items)
+            
+            for triple in localDown!.triples {
+                let relationship = triple.relationship
+                let firstPairing = Pairing(triple.to, raState)
+                let secondPairing = Pairing(triple.from, raState)
+                up?.add(Triple(from: firstPairing, relationship: relationship, to: secondPairing))
+            }
+            
+            // compute successors
+            let allStates: [FiniteStateMachineState] = raState.items + localDown!.allTo()
+            
+            right?.from(allStates) { (relationship: Label, localRight: Relation<FiniteStateMachineState, Label>) in
+                let candidateItems = localRight.allTo()
+                let candidate = ReadaheadState()
+                candidate.items = candidateItems
+                
+                // Match candidate with existing readahead states
+                var successor = self.match(candidate, readaheadStates)
+                if successor == nil {
+                    readaheadStates.append(candidate)
+                    successor = candidate
+                    renumber() // renumber for new RA state
+                }
+                
+                raState.transitions.append(Transition(relationship, successor!))
+                
+                for triple in localRight.triples {
+                    let labelPairing = Pairing(triple.relationship, successor! as ReadaheadState)
+                    let pairing1 = Pairing(triple.to, successor! as ReadaheadState)
+                    let pairing2 = Pairing(triple.from, raState)
+                    left?.add(Triple(from: pairing1, relationship: labelPairing, to: pairing2))
+                }
+            }
+            
+            index += 1
+        }
+    }
+    
+    
+    // bridge lookahead transition back to the initial readahead state (instead of to an initial readback state).
+    func buildScannerBridges() {
+        for raState in readaheadStates {
+            let finalItems = raState.items.filter({ $0.isFinal })
+            let partition = Dictionary(grouping: finalItems, by: { $0.leftPart })
+            
+            for (nonterminal, finalItems) in partition {
+                if let production = Grammar.activeGrammar?.productions[nonterminal] {
+                    let followSet = production.followSet
+                    for lookahead in followSet {
+                        raState.transitions.append(Transition(Label(lookahead, AttributeList().set(Grammar.lookDefaults())), raState))
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    func buildReadbackStateBridges() {
+        readbackStates = []
+        
+        for raState in readaheadStates {
+            let finalItems = raState.items.filter({ $0.isFinal })
+            let partition = Dictionary(grouping: finalItems, by: { $0.leftPart })
+            
+            for (nonterminal, finalItems) in partition {
+                var newState:FiniteStateMachineState
+                
+                if let production = Grammar.activeGrammar?.productions[nonterminal] {
+                    if production.isGoal() {
+                       newState = AcceptState()
+                    } else {
+                        newState = ReadbackState()
+                        if let readbackState = newState as? ReadbackState {
+                            let finalItemPairs = finalItems.map { finalItem in
+                                return Pairing(finalItem, raState)
+                            }
+                            readbackState.items = finalItemPairs
+                            readbackStates.append(readbackState)
+                        }
+                    }
+                    
+                    renumber()
+                    
+                    let followSet = production.followSet
+                    for lookahead in followSet {
+                        raState.transitions.append(Transition(Label(lookahead, AttributeList().set(Grammar.lookDefaults())), newState))
+                    }
+                }
+            }
+        }
+    }
+    
+    func finishReadbackStates() {
+        var index = 0
+                
+        while index < readbackStates.count {
+            let rbState = readbackStates[index]
+            let moreItems = invisibleLeft?.performStar(items: rbState.items)
+            
+            visibleLeft!.from(moreItems!) { (relationship: Pairing, localLeft: Relation<Pairing, Pairing>) in
+                let candidateItems = localLeft.allTo()
+                let candidate = ReadbackState()
+                candidate.items = candidateItems
+                
+                // Match candidate with existing readahead states
+                var successor = self.match(candidate, readbackStates)
+                
+                if successor == nil {
+                    readbackStates.append(candidate)
+                    successor = candidate
+                    renumber()
+                    rbState.transitions.append(Transition(relationship, successor!))
+                }
+            }
+            
+            let initialItems = moreItems!.filter{($0.isInitial())}
+            if !initialItems.isEmpty {
+                let lookbacks = lookbackFor(initialItems)
+                if lookbacks.count > 0 {
+                    for lookback in lookbacks {
+                        if let label = lookback.item1 as? Label {
+                            if let initialItem = initialItems.first?.item2 as? FiniteStateMachineState {
+                                let reduceStateNonTerminal = initialItem.leftPart
+                                
+                                // Safely check for reduceState and avoid force-unwrapping
+                                if let reduceState = reduceStates[reduceStateNonTerminal] {
+                                    rbState.transitions.append(Transition(Label(label.name, AttributeList().set(Grammar.lookDefaults())), reduceState))
+                                } else {
+                                    print("Warning: No reduce state found for nonterminal \(reduceStateNonTerminal)")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            index += 1
+        }
+    }
+    
+    func lookbackFor(_ items: [Pairing]) -> [Pairing]{
+        var result: [Pairing] = []
+        
+        if let singleUpItems = up?.performOnce(items: items) {
+            result.append(contentsOf: singleUpItems)
+        }
+        
+        var newItems: [Pairing] = result
+        var additionalItems: [Pairing] = []
+        
+        while !newItems.isEmpty {
+            additionalItems.removeAll()
+            
+            for item in newItems {
+                if let upItems = up?.performStar(items: [item]) {
+                    additionalItems.append(contentsOf: upItems.filter { !result.contains($0) && !additionalItems.contains($0) })
+                }
+                if let leftItems = invisibleLeft?.performStar(items: [item]) {
+                    additionalItems.append(contentsOf: leftItems.filter { !result.contains($0) && !additionalItems.contains($0) })
+                }
+            }
+            
+            // If we found new items, add them to result and continue the loop
+            if !additionalItems.isEmpty {
+                result.append(contentsOf: additionalItems)
+                newItems = additionalItems
+            } else {
+                break
+            }
+        }
+        
+        var lookbacks: [Pairing] = []
+        visibleLeft!.from(result) { (relationship: Pairing, relation: Relation<Pairing, Pairing>) in
+            let lookback = relationship.asLook()
+
+            // Check if the lookback already exists
+            if !lookbacks.contains(where: {
+                if let label1 = $0.item1 as? Label, let label2 = lookback.item1 as? Label {
+                    if label1 == label2 {
+                        if let state1 = $0.item2 as? FiniteStateMachineState, let state2 = lookback.item2 as? FiniteStateMachineState {
+                            return state1.stateNumber == state2.stateNumber
+                        }
+                    }
+                }
+                return false
+            }) {
+                lookbacks.append(lookback)
+            }
+        }
+        
+        return lookbacks
     }
     
     // tells you the kind of fsm you're building
     func processTypeNow (_ parameters:[Any]) -> Void {
         let type = parameters [0] as? String;
         Grammar.activeGrammar?.type = type!
+    }
+    
+    func printAllStates() {
+        print("\nReadahead States\n")
+        for raState in readaheadStates {
+            raState.printOn()
+            print("\n")
+        }
+        
+        if (Grammar.activeGrammar?.isParser() == true) {
+            print("\nReadback States\n")
+            for rbState in readbackStates {
+                rbState.printOn()
+            }
+        }
+        
+        print("\nReduce States\n")
+        for redState in reduceStates.values {
+            redState.printOn()
+        }
+    }
+
+    
+    func splitLeftRelation() {
+        let visibleTriples = left!.triples.filter { $0.relationship.isVisible() }
+        visibleLeft = Relation(triples: Set(visibleTriples))
+        
+        let invisibleTriples = left!.triples.filter { !$0.relationship.isVisible() }
+        invisibleLeft = Relation(triples: Set(invisibleTriples))
+    }
+    
+    func match(_ candidate: ReadaheadState, _ readaheadStates: [ReadaheadState]) -> ReadaheadState? {
+        for state in readaheadStates {
+            if state.items == candidate.items {
+                return state
+            }
+        }
+        return nil  
+    }
+    
+    func match(_ candidate: ReadbackState, _ readbackStates: [ReadbackState]) -> ReadbackState? {
+        for state in readbackStates {
+            if state.items == candidate.items {
+                return state
+            }
+        }
+        return nil
     }
     
     func walkGrammar (_ tree: VirtualTree) {
@@ -166,7 +511,7 @@ public final class Constructor : Translator {
         
         // now process the tree
         for child in tree.children {
-            walkTree(child)
+            _ = walkTree(child)
         }
         
         if let description = Grammar.activeGrammar?.description {
@@ -243,6 +588,7 @@ public final class Constructor : Translator {
         switch result {
             case let tuple as (String, [String]):  // nonterminal and lookahead collection
                 nonterminalSymbol = tuple.0
+                print("TUPLE: \(tuple)")
                 production.lookahead = tuple.1
             case let nonterminal as String:  // Just a String
                 nonterminalSymbol = nonterminal
@@ -297,6 +643,8 @@ public final class Constructor : Translator {
                 lookaheadSymbols.append(transition.label!.name)
             }
         }
+        
+        print("LOOKAHEAD SYMBOLS: \(lookaheadSymbols)")
     
         return (nonterminal, lookaheadSymbols)
     }
@@ -637,7 +985,7 @@ public final class Constructor : Translator {
         //Pick up the tree just built containing either the attributes, keywords, optimize, and output tree,
         //process it with walkTree, and remove it from the tree stack... by replacing the entry by nil..."
         let tree: Tree = self.parser!.treeStack.last as! Tree
-        self.walkTree(tree)
+        _ = self.walkTree(tree)
         self.parser!.treeStack.removeLast()
         self.parser!.treeStack.append(nil)
     }

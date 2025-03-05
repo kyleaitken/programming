@@ -37,7 +37,7 @@ public final class Grammar {
         }
         
         string += "\nGrammar Productions: \n\n"
-        for (name, production) in self.productions {
+        for production in self.productions.values {
             string += production.description + "\n"
         }
         
@@ -100,6 +100,74 @@ public final class Grammar {
         }
     }
     
+    func augmentGrammar() {
+        // Check if this is a parser grammar and augment it accordingly
+        if self.isParser(), let startSymbol = productions.keys.first {
+            let augmentedProduction = Production()
+            augmentedProduction.name("G'")
+            
+            let rightPartFSM = FiniteStateMachine()
+            let state1 = FiniteStateMachineState(final: false)
+            state1.stateNumber = 1
+            let state2 = FiniteStateMachineState()
+            state2.stateNumber = 2
+            let state3 = FiniteStateMachineState()
+            state3.stateNumber = 3
+            let state4 = FiniteStateMachineState(final: true)
+            state4.stateNumber = 4
+            
+            rightPartFSM.states = [state1, state2, state3, state4]
+            
+            // add transitions
+            let transition1 = Transition(Label("|-", Grammar.defaultsFor("|-")), state2)
+            state1.transitions.append(transition1)
+            
+            print("Start symbol: \(startSymbol)")
+            let transition2 = Transition(Label(startSymbol, Grammar.defaultsFor(startSymbol)), state3)
+            state2.transitions.append(transition2)
+            
+            let transition3 = Transition(Label("{-|}", Grammar.defaultsFor("{-|}")), state4)
+            state3.transitions.append(transition3)
+            
+            augmentedProduction.fsm = rightPartFSM
+            self.productions["G'"] = augmentedProduction
+            
+//            let acceptState = AcceptState()
+//            state4.transitions.append(Transition(Label("accept", Grammar.defaultsFor("accept")), acceptState))
+            
+            print("right fsm")
+            print(rightPartFSM.description)
+            
+//            return acceptState
+        }
+    }
+    
+    func allRightTriplesDo (closure: (_ state: FiniteStateMachineState, _ transitionLabel: Label, _ goto: FiniteStateMachineState ) -> Void) {
+        for production in self.productions.values {
+            for state in production.fsm.states {
+                for transition in state.transitions {
+                    closure(state, transition.label!, transition.goto!)
+                }
+            }
+        }
+    }
+    
+    func allDownTriplesDo (closure: (_ state: FiniteStateMachineState, _ nonterminal: String, _ initialState: FiniteStateMachineState) -> Void) {
+        for p in self.productions.values {
+            for s in p.fsm.states {
+                for t in s.transitions {
+                    if self.isNonterminal(t.label!.name) {
+                        let nonterm = t.label!.name
+                        let rightPart = productionFor(nonterm).rightPart()
+                        rightPart.initialStatesDo { initialState in
+                            closure(s, nonterm, initialState)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
 //    static func isPrintable (_ anInteger: Int) -> Bool {
 //        //Grammar isPrintable (Int ("a"))
 //        //Grammar isPrintable (10")
@@ -109,6 +177,16 @@ public final class Grammar {
 //        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\\*~=@%&?|<>'[]{}()^;#:.$_\" "
 //        return printables.contains(Character(UnicodeScalar(anInteger)!))
 //    }
+    
+    func renumber () {
+        var count = 1
+        for production in productions.values {
+            for state in production.fsm.states {
+                state.stateNumber = count
+                count += 1
+            }
+        }
+    }
     
     
     static func isPrintable(_ value: Int) -> Bool {
@@ -295,6 +373,10 @@ public final class Grammar {
         computeFirstSets ()
         computeFollowSets ()
         printEGeneratingFirstAndFollowSets ()
+        
+        for production in productions.values {
+            production.associateLeftPartWithStates()
+        }
     }
     
     
@@ -341,7 +423,13 @@ class Production : CustomStringConvertible {
         return string
     }
     
-    func isGoal () -> Bool {return lookahead != nil}
+    func isGoal () -> Bool {return lookahead != [] && lookahead != nil}
+    
+    func associateLeftPartWithStates() {
+        for state in fsm.states {
+            state.leftPart = self.leftPart
+        }
+    }
     
 }
 

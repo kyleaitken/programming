@@ -176,6 +176,47 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
         // Return the sorted result as an array
         return result.sorted()
     }
+    
+    func performOnce(items: [Item]) -> [Item] {
+        var result = Set<Item>()
+        
+        for item in items {
+            self.from([item]) { relationship, relation in
+                let newItems = relation.allTo()
+                // add new items to result if not present
+                for newItem in newItems {
+                    result.insert(newItem)
+                }
+            }
+        }
+        return Array(result)
+    }
+    
+    func performRelationStar(items: [Item]) -> Relation {
+        let relationResult = Relation()
+        var result = Set(items)
+        
+        for item in result {
+            // Call 'from' with the item wrapped in an array
+            self.from([item]) { relationship, relation in
+                // Iterate over the triples in the relation and add them to relationResult
+                for triple in relation.triples {
+                    relationResult.add(triple)
+                }
+                // Get all "to" items from the relation
+                let newItems = relation.allTo()
+                
+                // Add the new items to result if they're not already in the result
+                for newItem in newItems {
+                    if !result.contains(newItem) {
+                        result.insert(newItem)
+                    }
+                }
+            }
+        }
+        
+        return relationResult
+    }
 
     func from(_ froms: [Item], relationsDo: (Relationship, Relation) -> Void) {
         // filter triples where triple.from is in the froms array
@@ -269,7 +310,13 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
             closure((triple.from, triple.relationship, triple.to)) // pass a tuple instead of Triple
         }
     }
-
+    
+    func doTriples(closure: (Triple<Item, Relationship>) -> Void) {
+        for triple in triples {
+            closure(triple)
+        }
+    }
+    
     static func example1() -> Void {
         // Create relation
         let triples: Set<Triple<Int, String>> = [

@@ -8,6 +8,7 @@
 public class Transition: Equatable {
     var goto: FiniteStateMachineState?
     var label: Label?
+    var pairingLabel: Pairing?
 
     func override (_ attributes: Array<String>) {
         if self.label!.hasAction () {return}
@@ -23,8 +24,22 @@ public class Transition: Equatable {
         self.goto = goto
     }
     
+    
+    init(_ pairingLabel: Pairing, _ goto: FiniteStateMachineState) {
+        self.pairingLabel = pairingLabel
+        self.goto = goto
+    }
+    
+    func hasPairing() -> Bool {
+        return pairingLabel != nil
+    }
+    
     func printOn() {
-        print("\(label!.printOn()) goto State \(goto?.stateNumber ?? -1)")
+        if hasPairing() {
+            print("\(pairingLabel!.description) goto State \(goto?.stateNumber ?? -1)")
+        } else {
+            print("\(label!.printOn()) goto State \(goto?.stateNumber ?? -1)")
+        }
     }
     
     public var description: String {

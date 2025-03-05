@@ -5,7 +5,6 @@
 //  Created by Kyle Aitken on 2025-02-06.
 //
 
-
 public class Label: Relatable {
     var name: String = ""
     var attributes: AttributeList = AttributeList ().set (["look", "noStack", "noKeep", "noNode"])

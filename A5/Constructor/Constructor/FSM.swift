@@ -100,9 +100,15 @@ public class FiniteStateMachine {
         }
     }
     
-    func initialStatesDo<T>(closure: (FiniteStateMachineState) -> [T]) -> [T] {
-        // Apply the closure to each initial state, and gather the results into a single array
-        return self.states.filter { $0.isInitial }.flatMap { closure($0) }
+//    func initialStatesDo<T>(closure: (FiniteStateMachineState) -> [T]) -> [T] {
+//        // Apply the closure to each initial state, and gather the results into a single array
+//        return self.states.filter { $0.isInitial }.flatMap { closure($0) }
+//    }
+//    
+    func initialStatesDo(closure: (FiniteStateMachineState) -> Void) {
+        for state in states where state.isInitial {
+            closure(state)
+        }
     }
     
     func allStatesDo<T>(closure: (FiniteStateMachineState) -> [T]) -> [T] {

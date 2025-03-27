@@ -1,0 +1,44 @@
+scanner
+    //NOTE: All transitions 256 should be converted to integers...
+
+    //For scanners, the following does not mean build an FSM with a string transition for "0123", it
+    //means build a 2 state FSM with 4 transitions: one for $0, one for $1, one for $2, and one
+    //for $3.
+    digit = "0123"; //There should be 4 transitions. The attribute should be "RK". (note: character $0 is ascii 48)
+    fsm2 = $0 .. $3; //4 transitions. Just a new notation equivalent to fsm1.
+    fsm3 = 0 .. 3; //4 transition. The same new notation but with the transitions given as integers.
+       //They are clearly unprintabble characters.
+    fsm4 = 0 | 1 | 2 | 3; //Uses standard or routine. Note: integer inputs means they are unprintable...
+    fsm5 = $0 | $1 | $2 | $3; //Like above but these are printable once you convert to integers, it will have 
+       //ascii value 48 for $0, 49 for $1, ....
+
+    tab = 9 [noKeep];
+    carriageReturn = 13 [noKeep];
+    lineFeed = 10 [noKeep];
+    formFeed = 12 [noKeep];
+    blank = 32 [noKeep];
+    lineEnd = carriageReturn | lineFeed  | formFeed;
+    space = blank | tab | lineEnd;
+    all = "0123abc;+-/" [read keep] | space | lineEnd; //The 5 non-printable characters should be "R"; others "RK".
+    endOfFileCharacter = 256; //Not a valid ascii character.
+
+    //The following is an example scanner production... The "+" is new but the "=> Number" is stuff your last assignment could already handle.
+    number = digit+ => Number; //This should recognize 1 or more digits followed by a walk routine for semantic transition 
+        //#buildToken: with parameters "Number", a string, NOT a token) in Smalltalk. In Swift, the : is missing from #buildToken:.
+	// This last one should work from your old code.
+			
+    //NOTE: The - operation is difficult... But you already implemented it in parserFSMs.
+    nonDigit = {all - digit}; //The attributes should be "L".
+
+    //The following describes a comment in the C++ style (like this comment).
+    //It's pretty complicated as an FSM... Look at it when you print it.
+    comment =
+        ($/ [noKeep] {all - $/} #syntaxError: ["// is a comment, / alone is not valid"])
+      | ($/ [noKeep] $/ [noKeep]
+                (all [noKeep] - lineEnd [noKeep])*
+            (
+                lineEnd [noKeep] |
+                {endOfFileCharacter}
+            )
+        );
+

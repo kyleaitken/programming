@@ -1,0 +1,117 @@
+
+parser
+
+    //Note: parsers don't use keep/noKeep, just  read/look, stack/noStack, and node/noNode.
+    attribute terminal defaults "stack" "read" "noNode" "keep".    
+    attribute nonterminal defaults "stack" "read" "node" "keep".    
+
+    keywords 
+         "stack" "noStack" "read" "look" "node" "noNode" "keep" "noKeep" 
+         "parser" "scanner" "super" "superScanner" 
+     "attribute" "defaults" "keywords" "output" "optimize" "terminal" "nonterminal".
+
+    output "All". //One of All, Smalltalk, Ruby, C++, C++98, or Java
+   //optimize "chain reductions".
+
+   //NOTE: parser used above is a keyword but "parser" used below is a string that will be
+   //used as a keyword when and only when the tables run.
+
+
+    Grammar {'-|'}
+        //Note that #processAndDiscardDefaultsNow eliminates the walkKeywords:, walkAttributeDefaults:, 
+    	//walkOutput:, and walkOptimize: trees.
+        -> GrammarType (Defaults #processAndDiscardDefaultsNow)* Rules .
+
+    GrammarType
+        //Note that NO tree is built for a grammar type.
+        -> "parser" #processTypeNow: [#parser] 
+        -> "scanner" #processTypeNow: [#scanner] 
+        -> "super" "scanner" #processTypeNow: [#superScanner] 
+        -> "superScanner" #processTypeNow: [#superScanner] . 
+    
+    Defaults
+        -> "attribute" "defaults" Name+ "Dot" => walkAttributeDefaults: 
+        -> "attribute" "terminal" "defaults" Name+ "Dot" => walkAttributeTerminalDefaults: 
+        -> "attribute" "nonterminal" "defaults" Name+ "Dot" => walkAttributeNonterminalDefaults: 
+        -> "keywords" Name+ "Dot" => walkKeywords: 
+        -> "output" Name "Dot" => walkOutput:  
+        -> "optimize" Name "Dot" => walkOptimize: . 
+
+    Rules
+        -> (Production | Macro)+ => walkGrammar: .
+    Macro
+        -> Name "Equals" Expression "Dot" => walkMacro: .
+
+    Production
+        -> LeftPart RightParts "Dot" => walkProduction: .
+
+    LeftPart
+        -> Name => walkLeftPart:
+        -> Name "OpenCurly" Expression "CloseCurly" => walkLeftPartWithLookahead: .
+
+    RightParts 
+        -> RightPart + => walkOr: .
+
+    RightPart
+        -> "RightArrow" Expression 
+        -> "RightArrow" Expression "FatRightArrow" TreeBuildingOptions => walkConcatenation: .
+
+    Expression 
+        -> AndExpression 
+	-> AndExpression "Minus" AndExpression => walkMinus: .
+
+    AndExpression 
+        -> Alternation 
+	-> Alternation "And" Alternation=> walkAnd: .
+
+    Alternation
+        -> => walkEpsilon:
+        -> Concatenation
+        -> Concatenation ("Or" Concatenation)+ => walkOr: .
+
+    Concatenation
+        -> RepetitionOption
+        -> RepetitionOption RepetitionOption+ => walkConcatenation: .
+
+    RepetitionOption
+        -> Primary
+        -> Primary "Star" => walkStar:
+        -> Primary "QuestionMark" => walkQuestionMark:
+        -> Primary "Plus" => walkPlus: .
+
+    Primary
+        -> Secondary
+        -> SemanticAction => walkNonTreeBuildingSemanticAction:
+        -> Secondary "OpenSquare" Attribute [node]* "CloseSquare" => walkAttributes: .
+
+    Secondary
+        -> "OpenRound" Expression "CloseRound"
+        -> "OpenCurly" Expression "CloseCurly" => walkLook: 
+        -> (Name | Byte)
+        -> Byte DotDot Byte => walkDotDot:.
+
+    TreeBuildingOptions
+        -> Name => walkBuildTreeOrTokenFromName:
+        -> "Minus" walkInteger: [node] => walkBuildTreeFromRightIndex:
+        -> "Plus"? walkInteger: [node] => walkBuildTreeFromLeftIndex:
+        -> SemanticAction => walkTreeBuildingSemanticAction:.
+
+    Name
+        -> walkIdentifier: [node] | walkString: [node].
+
+    Byte
+        -> walkCharacter: [node] | walkInteger: [node].
+
+    SemanticAction
+        -> walkSymbol: [node] => walkSemanticAction:
+        -> walkSymbol: [node] "OpenSquare" SemanticActionParameter* "CloseSquare" => walkSemanticAction:.
+
+    SemanticActionParameter
+        -> Name | Byte | walkSymbol: [node].
+
+    Attribute
+        //For parsers only: stack, noStack, node, and noNode; for scanners only: keep and noKeep.
+        //Both read and look are for both BUT look is generally indicated by "{a}" rather than "a [look]"
+        //and read is generally indicated by not saying it's what it is; e.g., "a" rather than "a [read]".
+        -> ("stack" | "noStack" | "read" | "look" | "node"  | "noNode" | "keep" | "noKeep") [node].
+        

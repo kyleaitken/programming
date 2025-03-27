@@ -1,0 +1,10 @@
+parser
+
+    //This is the the LISP GRAMMAR with 2 extra semantic actions to create INVISIBLES.
+    //It already has had it's goal production S augmented to S'.
+
+    "S'" {'-|'} -> '|-' S.
+
+    S 
+	-> '(' S * ')' #thisIsAList => "list"
+	-> Identifier [node] #thisIsAnIdentifier.

@@ -1,0 +1,18 @@
+
+parser
+    attribute terminal defaults "stack" "read" "noNode" "keep".
+    attribute nonterminal defaults "stack" "read" "node" "keep".
+
+    keywords
+        "stack" "noStack" "read" "look" "node" "noNode" "keep" "noKeep"
+        "parser" "scanner" "super" "superScanner"
+        "attribute" "defaults" "keywords" "output" "optimize" "terminal" "nonterminal".
+
+    output "All". //One of All, Smalltalk, Ruby, C++, C++98, Java, or Swift
+    
+    //This is the LISP grammar.
+
+   S {EndOfFile}
+	-> '(' S * ')' => "list"
+	-> Identifier [node].
+			

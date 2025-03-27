@@ -207,7 +207,6 @@ public class DualFiniteStateMachineState: FiniteStateMachineState {
 
 public class ReadaheadState: FiniteStateMachineState {
     var items: [FiniteStateMachineState] = []
-    var initialItems: [FiniteStateMachineState] = []
     
     override func printOn() {
         let itemStateNumbers = items.map { String($0.stateNumber) }.joined(separator: " ")
@@ -224,7 +223,6 @@ public class ReadaheadState: FiniteStateMachineState {
 
 public class ReadbackState: FiniteStateMachineState {
     var items: [Pairing] = []
-    var initialItems: [Pairing] = []
     
     override func printOn() {
         let itemPairs = items.map { $0.terseDescription }.joined(separator: " ")

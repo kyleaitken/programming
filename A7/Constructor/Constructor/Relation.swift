@@ -214,8 +214,11 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
     func performRelationStar(items: [Item]) -> Relation {
         let relationResult = Relation()
         var result = Set(items)
+        var itemsToProcess = Set(items)
         
-        for item in result {
+        while !itemsToProcess.isEmpty {
+            let item = itemsToProcess.popFirst()!  // Get the first item to process
+            
             // Call 'from' with the item wrapped in an array
             self.from([item]) { relationship, relation in
                 // Iterate over the triples in the relation and add them to relationResult
@@ -229,6 +232,7 @@ class Relation<Item: Relatable, Relationship: Relatable>: CustomStringConvertibl
                 for newItem in newItems {
                     if !result.contains(newItem) {
                         result.insert(newItem)
+                        itemsToProcess.insert(newItem)
                     }
                 }
             }

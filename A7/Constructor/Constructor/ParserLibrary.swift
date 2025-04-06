@@ -435,6 +435,8 @@ class ReduceTable: Table, TableWithTransitionsWithIntKey {
         debug ("Reduce to \(nonterminal)")
         let parser = self.transducer as! Parser //Eliminate unwrapping once and for all
         var tree: VirtualTree? = nil
+        print("reduce table: \(self.transitions)")
+        print(parser.treeStack)
 
         if let routine = parser.delayedRoutine { //Run if not nil.
               tree = routine (); parser.delayedRoutine = nil

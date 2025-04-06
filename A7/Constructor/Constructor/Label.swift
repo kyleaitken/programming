@@ -45,7 +45,7 @@ public class Label: Relatable {
             }
         }
            
-        return ("\"\(nameToPrint)\", \"\(attributes.description)\"")
+        return ("\t\"\(nameToPrint)\", \"\(attributes.description)\"")
      }
     
     public var description: String {

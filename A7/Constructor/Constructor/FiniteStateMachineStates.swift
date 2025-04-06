@@ -233,6 +233,14 @@ public class ReadaheadState: FiniteStateMachineState {
         return true
     }
     
+    func isSemanticState() -> Bool {
+        return false
+    }
+    
+    override func isReadback() -> Bool {
+        return false
+    }
+    
     override func printOn() {
 //        let itemStateNumbers = finalItems.map { String($0.stateNumber) }.joined(separator: " ")
 //        print("ReadaheadTable \(self.stateNumber) {\(itemStateNumbers)}")
@@ -403,7 +411,7 @@ public class ReadbackState: FiniteStateMachineState {
 
 public class ReduceState: FiniteStateMachineState {
     var nonterminal: String = ""
-    var reduceTransitions: Array<Triple<ReadaheadState, String>> = []
+    var reduceTransitions: Array<Triple<FiniteStateMachineState, String>> = []
 //    var transitions: Array<Triple<Int, String>> = []
     var restarts: Array<(ReadaheadState, String, ReadaheadState)> = []
 
@@ -426,13 +434,36 @@ public class ReduceState: FiniteStateMachineState {
     // Reduce tables have the form:
    // ["ReduceTable", 131, "AndExpression", (17, "RSN", 27), (18, "RSN", 27), (20, "RSN", 27), (32, "RSN", 27), (37, "RSN", 27), (42, "RSN", 103)],
     // ie ["ReduceTable, redState.stateNumber, redState.nonterminal, (redState.restarts[0].first.stateNumber, rs.restarts[0].second, rs.restarts[0].third.stateNumber)
+//    func getFormmatedTableLine() -> String {
+//        var transitions = ""
+//
+//        for restart in self.restarts {
+//            let fromStateNumber = restart.0.stateNumber
+//            let attributes = restart.1
+//            let gotoStateNumber = restart.2.stateNumber
+//            
+//            let tuple = "(\(fromStateNumber), \"\(attributes)\", \(gotoStateNumber))"
+//            transitions += "\(tuple), "
+//        }
+//
+//        // Remove trailing comma and space
+//        if !transitions.isEmpty {
+//            transitions.removeLast(2)
+//        }
+//        return "[\"ReduceTable\", \(self.stateNumber), \"\(self.nonterminal)\", \(transitions)],\n"
+//    }
+    
+    
+    // Reduce tables have the form:
+   // ["ReduceTable", 131, "AndExpression", (17, "RSN", 27), (18, "RSN", 27), (20, "RSN", 27), (32, "RSN", 27), (37, "RSN", 27), (42, "RSN", 103)],
+    // ie ["ReduceTable, redState.stateNumber, redState.nonterminal, (redState.restarts[0].first.stateNumber, rs.restarts[0].second, rs.restarts[0].third.stateNumber)
     func getFormmatedTableLine() -> String {
         var transitions = ""
 
-        for restart in self.restarts {
-            let fromStateNumber = restart.0.stateNumber
-            let attributes = restart.1
-            let gotoStateNumber = restart.2.stateNumber
+        for trans in self.reduceTransitions {
+            let fromStateNumber = trans.from.stateNumber
+            let attributes = trans.relationship
+            let gotoStateNumber = trans.to.stateNumber
             
             let tuple = "(\(fromStateNumber), \"\(attributes)\", \(gotoStateNumber))"
             transitions += "\(tuple), "
@@ -455,6 +486,10 @@ public class SemanticState: FiniteStateMachineState {
         super.init()
         self.label = label
         self.goto = goto
+    }
+    
+    func isSemanticState() -> Bool {
+        return true
     }
     
     override func printOn() {

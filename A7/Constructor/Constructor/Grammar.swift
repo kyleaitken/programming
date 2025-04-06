@@ -167,21 +167,21 @@ public final class Grammar {
             }
         }
     }
-    
-//    static func isPrintable (_ anInteger: Int) -> Bool {
-//        //Grammar isPrintable (Int ("a"))
-//        //Grammar isPrintable (10")
-//        //Grammar isPrintable (256)|
-//        if (anInteger < 0) || (anInteger >= 256) {return false}
-//        let printables = //Note: contains one single quote (quoted twice) and one double quote (quoted once)..."
-//        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!,+-/\\*~=@%&?|<>'[]{}()^;#:.$_\" "
-//        return printables.contains(Character(UnicodeScalar(anInteger)!))
-//    }
+
     
     func renumber () {
-//        let goalProduction = productions.filter({$0.key.contains("'")})
         var count = 1
-        for production in productions.values {
+        let goalProductions = goalProductions()
+        let nonGoalProductions = nonGoalProductions()
+        
+        for production in goalProductions {
+            for state in production.fsm.states {
+                state.stateNumber = count
+                count += 1
+            }
+        }
+        
+        for production in nonGoalProductions {
             for state in production.fsm.states {
                 state.stateNumber = count
                 count += 1
@@ -234,6 +234,15 @@ public final class Grammar {
         }
         return goalProductions;
     }
+    
+    func nonGoalProductions() -> Array<Production> {
+        var nonGoalProductions: Array<Production> = []
+        for (_, production) in productions {
+            if !production.isGoal () {nonGoalProductions.append (production)}
+        }
+        return nonGoalProductions;
+    }
+    
     
     
     func eSuccessors (_ fsmStates: Array<FiniteStateMachineState>) -> Array<FiniteStateMachineState> {
